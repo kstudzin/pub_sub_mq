@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 import zmq
 
 
@@ -20,11 +22,16 @@ class RoutingBroker(Broker):
     registration_req = context.socket(zmq.REQ)
     registration_rep = context.socket(zmq.REP)
 
+    connect_address = None
+
     def __init__(self, registration_address):
-        self.registration_req.connect("tcp://localhost:5555")
+        self.connect_address = registration_address
+        self.registration_req.connect(registration_address)
 
     def is_server(self):
-        self.registration_rep.bind("tcp://*:5555")
+        reg_url = urlparse(self.connect_address)
+        bind_address = "{0}://*:{1}".format(reg_url.scheme, reg_url.port)
+        self.registration_rep.bind(bind_address)
 
     def register_pub(self, topic, address):
         """Creates and returns a publisher with the given address. Saves a subscriber connection."""
@@ -44,4 +51,3 @@ class RoutingBroker(Broker):
         message = self.registration_rep.recv()
         print(message)
         self.registration_rep.send_string("received")
-
