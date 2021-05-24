@@ -1,16 +1,17 @@
-import psserver
-from pubsub.broker import RoutingBroker
+import pubsub
 
 
 class Subscriber:
-    topic = None
+    topics = []
     address = None
-    broker = psserver.broker
+    broker = pubsub.broker
 
-    def __init__(self, topic, address):
-        self.topic = topic
+    def __init__(self, address):
         self.address = address
-        self.broker.register_sub(topic, address)
+
+    def register(self, topic):
+        self.topics.append(topic)
+        self.broker.register_sub(topic, self.address)
 
     def notify(self, topic, message):
         """Receives message"""

@@ -1,16 +1,17 @@
-import psserver
-from pubsub.broker import RoutingBroker
+import pubsub
 
 
 class Publisher:
-    topic = None
+    topics = []
     address = None
-    broker = psserver.broker
+    broker = pubsub.broker
 
-    def __init__(self, topic, address):
-        self.topic = topic
+    def __init__(self, address):
         self.address = address
-        self.broker.register_pub(topic, address)
+
+    def register(self, topic):
+        self.topics.append(topic)
+        self.broker.register_pub(topic, self.address)
 
     def publish(self, topic, message):
         """Publishes a message to socket(s)"""

@@ -1,9 +1,8 @@
-from pubsub.broker import RoutingBroker
-
-broker = RoutingBroker("tcp://localhost:5555")
+import pubsub
 
 
 def main():
+    broker = pubsub.broker
     broker.is_server()
     while True:
         broker.process()

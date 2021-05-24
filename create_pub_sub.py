@@ -8,5 +8,7 @@ Then run this script which should print 'received' for each registration.
 from pubsub.publisher import Publisher
 from pubsub.subscriber import Subscriber
 
-pub1 = Publisher("topic1", "tcp://localhost:5556")
-sub1 = Subscriber("topic1", "tcp://localhost:5556")
+pub1 = Publisher("tcp://localhost:5556")
+pub1.register("topic1")
+sub1 = Subscriber("tcp://localhost:5556")
+sub1.register("topic1")
