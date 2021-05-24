@@ -55,24 +55,27 @@ class RoutingBroker(Broker):
         events = dict(self.poller.poll())
         for socket in events.keys():
             if self.registration_rep == socket:
-                reg_type, topic, address = self.registration_rep.recv().split()
-
-                if reg_type == "pub":
-                    socket = self.context.socket(zmq.SUB)
-                    socket.connect(address)
-                    socket.setsockopt(zmq.SUBSCRIBE, b"")
-                    self.poller.register(socket, zmq.POLLIN)
-                else:
-                    bind_address = self.bind_address(address.decode('utf-8'))
-                    if topic in self.topic2socket:
-                        socket = self.topic2socket[topic]
-                        socket.bind(bind_address)
-                    else:
-                        socket = self.context.socket(zmq.PUB)
-                        socket.bind(bind_address)
-                        self.topic2socket[topic] = socket
-
+                message = self.registration_rep.recv()
+                self.process_registration(message)
                 self.registration_rep.send_string("received")
+
+    def process_registration(self, message):
+        reg_type, topic, address = message.decode('utf-8').split()
+
+        if reg_type == "pub":
+            socket = self.context.socket(zmq.SUB)
+            socket.connect(address)
+            socket.setsockopt(zmq.SUBSCRIBE, b"")
+            self.poller.register(socket, zmq.POLLIN)
+        else:
+            if topic in self.topic2socket:
+                socket = self.topic2socket[topic]
+            else:
+                socket = self.context.socket(zmq.PUB)
+                self.topic2socket[topic] = socket
+
+            bind_address = self.bind_address(address)
+            socket.bind(bind_address)
 
     @staticmethod
     def bind_address(address):
