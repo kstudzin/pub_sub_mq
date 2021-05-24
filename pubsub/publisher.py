@@ -1,6 +1,4 @@
 import logging
-from collections import defaultdict
-
 import zmq
 import pubsub
 from pubsub.util import MessageType, TopicNotRegisteredError
