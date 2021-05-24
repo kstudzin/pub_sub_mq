@@ -1,3 +1,4 @@
+import datetime
 import pubsub
 
 
@@ -15,4 +16,6 @@ class Publisher:
 
     def publish(self, topic, message):
         """Publishes a message to socket(s)"""
+        time = datetime.datetime.utcnow()
+        print(f"Publishing message: {time} : {topic} : {message}")
         pass
