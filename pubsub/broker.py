@@ -6,6 +6,7 @@ from pubsub import util
 REG_PUB = "REGISTER_PUBLISHER"
 REG_SUB = "REGISTER_SUBSCRIBER"
 
+
 class Broker:
 
     def register_pub(self, topic, address):
