@@ -1,7 +1,11 @@
 import argparse
 import sys
+import threading
+import time
 
 from pubsub.subscriber import Subscriber
+this = sys.modules[__name__]
+this.subscriber = None
 
 
 def config_parser() -> argparse.ArgumentParser:
@@ -9,8 +13,8 @@ def config_parser() -> argparse.ArgumentParser:
     Configures the arguments accepted by the argparse module.
     :return: A (argparse.ArgumentParser)
     """
-    parser = argparse.ArgumentParser(prog='Subscriber', usage='%(prog)s [options]'
-                                     , description='Start subscribing to topics.')
+    parser = argparse.ArgumentParser(prog='Subscriber', usage='%(prog)s [options]',
+                                     description='Start subscribing to topics.')
     parser.add_argument('--port', metavar='Port', type=int, nargs='?',
                         help='port numbers')
     parser.add_argument('--topics', metavar='Topics', type=str, nargs='+',
@@ -35,17 +39,29 @@ def register(args) -> Subscriber:
     return subscriber
 
 
+def listen_for_messages() -> None:
+    print("Listening....")
+    while True:
+        # this.subscriber getMessages
+        sample = "2021-05-25 13:19:42.504443 : FB : 202.11"
+        sent_time, topic, message = sample.split(" : ")
+        print(f"\nTime= {sent_time} Topic= {topic} Message= {message}")
+        time.sleep(3)
+
+
 def main():
     arg_parser = config_parser()
     args = arg_parser.parse_args()
-    subscriber = register(args)
+    this.subscriber = register(args)
+    threading.Thread(target=listen_for_messages, daemon=True).start()
+
     while True:
-        option = input("Enter 't' to add topic, 'q' to quit: ")
+        option = input("\nEnter 't' to add topic, 'q' to quit: ")
         if option.casefold() == "t":
             topic = input("Enter topic: ")
             print(topic)
             if len(topic) > 0:
-                subscriber.register(topic)
+                this.subscriber.register(topic)
         elif option.casefold() == "q":
             sys.exit(-1)
         else:
