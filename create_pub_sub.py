@@ -10,16 +10,21 @@ from time import sleep
 from pubsub.publisher import Publisher
 from pubsub.subscriber import Subscriber
 
-topic = "topic1"
+topic1 = "topic1"
+topic2 = "topic2"
 
 pub1 = Publisher("tcp://localhost:5556")
 sub1 = Subscriber("tcp://localhost:5557")
 
 sleep(5)
-pub1.register(topic)
-sub1.register(topic)
+pub1.register(topic1)
+pub1.register(topic2)
+sub1.register(topic1)
+sub1.register(topic2)
 
 sleep(5)
-pub1.publish(topic, "some_message")
-topic, message = sub1.wait_for_msg()
-print(f"Received message: {message} On topic: {topic}")
+pub1.publish(topic1, "some_message")
+sub1.wait_for_msg()
+
+pub1.publish(topic2, "other_message")
+sub1.wait_for_msg()

@@ -84,8 +84,7 @@ class RoutingBroker(Broker):
                 self.topic2socket[topic] = socket
 
             logging.debug(f"Broker binding subscriber to socket {socket}")
-            bind_address = util.bind_address(address)
-            socket.bind(bind_address)
+            socket.connect(address)
 
     def process_message(self, message):
         decoded = message.decode('utf-8')

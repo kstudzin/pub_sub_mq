@@ -1,6 +1,7 @@
 import logging
 import zmq
 import pubsub
+from pubsub import util
 
 
 def printing_callback(topic, message):
@@ -18,7 +19,7 @@ class Subscriber:
         self.callback = printing_callback
 
         self.address = address
-        self.socket.connect(self.address)
+        self.socket.bind(util.bind_address(address))
         logging.info(f"Subscriber connected to {address}")
 
     def register(self, topic):
