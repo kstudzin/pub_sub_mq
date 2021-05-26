@@ -9,14 +9,13 @@ def printing_callback(topic, message):
 
 
 class Subscriber:
-    topics = []
-    address = None
     broker = pubsub.broker
     ctx = zmq.Context()
-    socket = ctx.socket(zmq.SUB)
 
     def __init__(self, address):
+        self.topics = []
         self.callback = printing_callback
+        self.socket = self.ctx.socket(zmq.SUB)
 
         self.address = address
         self.socket.bind(util.bind_address(address))

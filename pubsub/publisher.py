@@ -5,17 +5,16 @@ from pubsub import util
 
 
 class Publisher:
-    topics = []
-    address = None
     broker = pubsub.broker
     ctx = zmq.Context()
-    socket = ctx.socket(zmq.PUB)
 
     def __init__(self, address):
+        self.topics = []
+        self.socket = self.ctx.socket(zmq.PUB)
+
         self.address = address
-        bind_address = util.bind_address(self.address)
-        self.socket.bind(bind_address)
-        logging.info(f"Publisher bound to {bind_address}")
+        self.socket.bind(util.bind_address(self.address))
+        logging.info(f"Publisher bound to {self.address}")
 
     def register(self, topic):
         self.topics.append(topic)
