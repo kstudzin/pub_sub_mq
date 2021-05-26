@@ -6,14 +6,6 @@ from pubsub import util
 
 class Broker:
 
-    def register_pub(self, topic, address):
-        """Publisher factory"""
-        pass
-
-    def register_sub(self, topic, address):
-        """Subscriber factory"""
-        pass
-
     def process(self):
         pass
 
@@ -22,34 +14,20 @@ class RoutingBroker(Broker):
     context = zmq.Context()
 
     def __init__(self, registration_address):
-        self.registration_pub = self.context.socket(zmq.PUB)
         self.registration_sub = self.context.socket(zmq.SUB)
-        self.socket = self.context.socket(zmq.SUB)
+        self.message_in = self.context.socket(zmq.SUB)
 
-        self.topic2socket = {}
+        self.topic2message_out = {}
         self.poller = zmq.Poller()
         self.connect_address = registration_address
-        self.registration_pub.connect(registration_address)
 
-    def is_server(self):
         bind_address = util.bind_address(self.connect_address)
         self.registration_sub.bind(bind_address)
         self.registration_sub.setsockopt_string(zmq.SUBSCRIBE, pubsub.REG_PUB)
         self.registration_sub.setsockopt_string(zmq.SUBSCRIBE, pubsub.REG_SUB)
 
         self.poller.register(self.registration_sub, zmq.POLLIN)
-        self.poller.register(self.socket, zmq.POLLIN)
-
-    def register_pub(self, topic, address):
-        """Creates and returns a publisher with the given address. Saves a subscriber connection."""
-        logging.info(f"Broker registering publisher for topic {topic} at address {address}")
-        self.registration_pub.send_string(f"{pubsub.REG_PUB} {topic} {address}")
-
-    def register_sub(self, topic, address):
-        """Creates and returns a subscriber with the given address. Connects new subscriber to
-        broker's bound publish address"""
-        logging.info(f"Broker registering subscriber for topic {topic} at address {address}")
-        self.registration_pub.send_string(f"{pubsub.REG_SUB} {topic} {address}")
+        self.poller.register(self.message_in, zmq.POLLIN)
 
     def process(self):
         """Polls for message on incoming connections and routes to subscribers"""
@@ -67,15 +45,15 @@ class RoutingBroker(Broker):
         logging.info(f"Broker processing {reg_type} to topic {topic} at address {address}")
 
         if reg_type == pubsub.REG_PUB:
-            self.socket.connect(address)
-            self.socket.setsockopt_string(zmq.SUBSCRIBE, topic)
+            self.message_in.connect(address)
+            self.message_in.setsockopt_string(zmq.SUBSCRIBE, topic)
         elif reg_type == pubsub.REG_SUB:
 
-            if topic in self.topic2socket:
-                socket = self.topic2socket[topic]
+            if topic in self.topic2message_out:
+                socket = self.topic2message_out[topic]
             else:
                 socket = self.context.socket(zmq.PUB)
-                self.topic2socket[topic] = socket
+                self.topic2message_out[topic] = socket
 
             logging.debug(f"Broker binding subscriber to socket {socket}")
             socket.connect(address)
@@ -85,8 +63,8 @@ class RoutingBroker(Broker):
         logging.info(f"Broker received message: {decoded}")
 
         topic, value = decoded.split()
-        if topic in self.topic2socket.keys():
-            socket = self.topic2socket[topic]
+        if topic in self.topic2message_out.keys():
+            socket = self.topic2message_out[topic]
 
             logging.info(f"Broker Sending message on topic {topic} to socket {socket}")
             socket.send_string(decoded)

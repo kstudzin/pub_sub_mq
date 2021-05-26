@@ -9,31 +9,36 @@ def printing_callback(topic, message):
 
 
 class Subscriber:
-    broker = pubsub.broker
     ctx = zmq.Context()
 
-    def __init__(self, address):
+    def __init__(self, address, registration_address):
         self.topics = []
         self.callback = printing_callback
-        self.socket = self.ctx.socket(zmq.SUB)
+        self.message_sub = self.ctx.socket(zmq.SUB)
 
         self.address = address
-        self.socket.bind(util.bind_address(address))
-        logging.info(f"Subscriber connected to {address}")
+        self.message_sub.bind(util.bind_address(address))
+
+        self.registration_pub = self.ctx.socket(zmq.PUB)
+        self.registration_pub.connect(registration_address)
+
+        logging.info(f"Subscriber bound to {address}. "
+                     f"Registering with broker at {registration_address}.")
 
     def register(self, topic):
-        self.topics.append(topic)
-        self.broker.register_sub(topic, self.address)
+        logging.info(f"Subscriber subscribing to topic {topic} at address {self.address}")
 
-        logging.info(f"Subscriber subscribing to topic {topic}")
-        self.socket.setsockopt_string(zmq.SUBSCRIBE, topic)
+        self.topics.append(topic)
+        self.registration_pub.send_string(f"{pubsub.REG_SUB} {topic} {self.address}")
+
+        self.message_sub.setsockopt_string(zmq.SUBSCRIBE, topic)
 
     def notify(self, topic, message):
         """Receives message"""
         self.callback(topic, message)
 
     def wait_for_msg(self):
-        topic, message = self.socket.recv_string().split()
+        topic, message = self.message_sub.recv_string().split()
         self.notify(topic, message)
 
     def register_callback(self, callback):

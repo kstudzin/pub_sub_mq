@@ -5,21 +5,27 @@ from pubsub import util
 
 
 class Publisher:
-    broker = pubsub.broker
     ctx = zmq.Context()
 
-    def __init__(self, address):
+    def __init__(self, address, registration_address):
         self.topics = []
-        self.socket = self.ctx.socket(zmq.PUB)
+        self.message_pub = self.ctx.socket(zmq.PUB)
 
         self.address = address
-        self.socket.bind(util.bind_address(self.address))
-        logging.info(f"Publisher bound to {self.address}")
+        self.message_pub.bind(util.bind_address(self.address))
+
+        self.registration_pub = self.ctx.socket(zmq.PUB)
+        self.registration_pub.connect(registration_address)
+
+        logging.info(f"Publisher bound to {self.address}. "
+                     f"Registering with broker at {registration_address}.")
 
     def register(self, topic):
+        logging.info(f"Publisher registering for topic {topic} at address {self.address}")
+
         self.topics.append(topic)
-        self.broker.register_pub(topic, self.address)
+        self.registration_pub.send_string(f"{pubsub.REG_PUB} {topic} {self.address}")
 
     def publish(self, topic, message):
         """Publishes a message to socket(s)"""
-        self.socket.send_string(f"{topic} {message}")
+        self.message_pub.send_string(f"{topic} {message}")
