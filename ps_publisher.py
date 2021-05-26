@@ -1,5 +1,6 @@
 import argparse
 import sys
+import sample_data
 
 from pubsub.publisher import Publisher
 
@@ -9,8 +10,8 @@ def config_parser() -> argparse.ArgumentParser:
     Configures the arguments accepted by the argparse module.
     :return: A (argparse.ArgumentParser)
     """
-    parser = argparse.ArgumentParser(prog='Publisher', usage='%(prog)s [options]'
-                                     , description='Start publishing topics.')
+    parser = argparse.ArgumentParser(prog='Publisher', usage='%(prog)s [options]',
+                                     description='Start publishing topics.')
     parser.add_argument('--port', metavar='Port', type=int, nargs='?',
                         help='port numbers')
     parser.add_argument('--topics', metavar='Topics', type=str, nargs='+',
@@ -49,6 +50,12 @@ def main():
                 message = input("Enter message: ")
                 if len(message) > 0:
                     publisher.publish(topic, message)
+                else:
+                    print("Please enter valid option")
+                    continue
+            else:
+                print("Please enter valid option")
+                continue
         elif option.casefold() == "q":
             sys.exit(-1)
         else:
