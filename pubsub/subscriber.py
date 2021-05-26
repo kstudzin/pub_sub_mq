@@ -3,6 +3,10 @@ import zmq
 import pubsub
 
 
+def printing_callback(topic, message):
+    print(f"Topic: {topic}, Message: {message}")
+
+
 class Subscriber:
     topics = []
     address = None
@@ -11,6 +15,8 @@ class Subscriber:
     socket = ctx.socket(zmq.SUB)
 
     def __init__(self, address):
+        self.callback = printing_callback
+
         self.address = address
         self.socket.connect(self.address)
         logging.info(f"Subscriber connected to {address}")
@@ -24,8 +30,11 @@ class Subscriber:
 
     def notify(self, topic, message):
         """Receives message"""
-        pass
+        self.callback(topic, message)
 
     def wait_for_msg(self):
         topic, message = self.socket.recv_string().split()
-        return topic, message
+        self.notify(topic, message)
+
+    def register_callback(self, callback):
+        self.callback = callback
