@@ -1,4 +1,6 @@
 import logging
+from collections import defaultdict
+
 import zmq
 import pubsub
 from pubsub.util import MessageType
@@ -11,13 +13,10 @@ def printing_callback(topic, message):
 class Subscriber:
     ctx = zmq.Context()
 
-    def __init__(self, address, registration_address):
-        self.topics = []
+    def __init__(self, registration_address):
+        self.topics = defaultdict(list)
         self.callback = printing_callback
         self.message_sub = self.ctx.socket(zmq.SUB)
-
-        self.address = address
-        self.message_sub.connect(self.address)
 
         self.registration_pub = self.ctx.socket(zmq.PUB)
         self.registration_pub.connect(registration_address)
@@ -26,17 +25,17 @@ class Subscriber:
                               MessageType.PYOBJ: self.message_sub.recv_pyobj,
                               MessageType.JSON: self.message_sub.recv_json}
 
-        logging.info(f"Subscriber bound to {address}. "
-                     f"Registering with broker at {registration_address}.")
+        logging.info(f"Registering with broker at {registration_address}.")
 
-    def register(self, topic):
-        logging.info(f"Subscriber registering to topic {topic} at address {self.address}")
+    def register(self, topic, address):
+        logging.info(f"Subscriber registering to topic {topic} at address {address}")
 
-        self.topics.append(topic)
+        self.topics[topic].append(address)
+        self.message_sub.connect(address)
 
         self.registration_pub.send_string(pubsub.REG_SUB, flags=zmq.SNDMORE)
         self.registration_pub.send_string(topic, flags=zmq.SNDMORE)
-        self.registration_pub.send_string(self.address)
+        self.registration_pub.send_string(address)
 
         self.message_sub.setsockopt_string(zmq.SUBSCRIBE, topic)
 

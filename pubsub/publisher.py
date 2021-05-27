@@ -1,4 +1,6 @@
 import logging
+from collections import defaultdict
+
 import zmq
 import pubsub
 from pubsub.util import MessageType
@@ -7,12 +9,9 @@ from pubsub.util import MessageType
 class Publisher:
     ctx = zmq.Context()
 
-    def __init__(self, address, registration_address):
-        self.topics = []
+    def __init__(self, registration_address):
+        self.topics = defaultdict(list)
         self.message_pub = self.ctx.socket(zmq.PUB)
-
-        self.address = address
-        self.message_pub.connect(self.address)
 
         self.registration_pub = self.ctx.socket(zmq.PUB)
         self.registration_pub.connect(registration_address)
@@ -21,17 +20,17 @@ class Publisher:
                             MessageType.PYOBJ: self.message_pub.send_pyobj,
                             MessageType.JSON: self.message_pub.send_json}
 
-        logging.info(f"Publisher bound to {self.address}. "
-                     f"Registering with broker at {registration_address}.")
+        logging.info(f"Registering with broker at {registration_address}.")
 
-    def register(self, topic):
-        logging.info(f"Publisher registering for topic {topic} at address {self.address}")
+    def register(self, topic, address):
+        logging.info(f"Publisher registering for topic {topic} at address {address}")
 
-        self.topics.append(topic)
+        self.topics[topic].append(address)
+        self.message_pub.connect(address)
 
         self.registration_pub.send_string(pubsub.REG_PUB, flags=zmq.SNDMORE)
         self.registration_pub.send_string(topic, flags=zmq.SNDMORE)
-        self.registration_pub.send_string(self.address)
+        self.registration_pub.send_string(address)
 
     def publish(self, topic, message, message_type=MessageType.STRING):
         """Publishes a message to socket(s)"""
