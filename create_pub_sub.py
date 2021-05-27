@@ -13,14 +13,14 @@ from pubsub.subscriber import Subscriber
 topic1 = "topic1"
 topic2 = "topic 2"
 
-pub1 = Publisher("tcp://localhost:5556", "tcp://localhost:5555")
 sub1 = Subscriber("tcp://localhost:5557", "tcp://localhost:5555")
+pub1 = Publisher("tcp://localhost:5556", "tcp://localhost:5555")
 
 sleep(5)
-pub1.register(topic1)
-pub1.register(topic2)
 sub1.register(topic1)
 sub1.register(topic2)
+pub1.register(topic1)
+pub1.register(topic2)
 
 sleep(5)
 pub1.publish(topic1, "some message")

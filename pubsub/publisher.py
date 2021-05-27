@@ -1,8 +1,6 @@
 import logging
 import zmq
-
 import pubsub
-from pubsub import util
 from pubsub.util import MessageType
 
 
@@ -14,7 +12,7 @@ class Publisher:
         self.message_pub = self.ctx.socket(zmq.PUB)
 
         self.address = address
-        self.message_pub.bind(util.bind_address(self.address))
+        self.message_pub.connect(self.address)
 
         self.registration_pub = self.ctx.socket(zmq.PUB)
         self.registration_pub.connect(registration_address)

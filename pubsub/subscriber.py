@@ -1,7 +1,6 @@
 import logging
 import zmq
 import pubsub
-from pubsub import util
 from pubsub.util import MessageType
 
 
@@ -18,7 +17,7 @@ class Subscriber:
         self.message_sub = self.ctx.socket(zmq.SUB)
 
         self.address = address
-        self.message_sub.bind(util.bind_address(address))
+        self.message_sub.connect(self.address)
 
         self.registration_pub = self.ctx.socket(zmq.PUB)
         self.registration_pub.connect(registration_address)
