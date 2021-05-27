@@ -28,6 +28,7 @@ class SubscriberUI:
         self.unsubscribe_btn = None
         self.message_list = None
         self.list_scroll = None
+        self.dialog = self.build_ui()
 
     @staticmethod
     def config_parser() -> ap.ArgumentParser:
@@ -60,7 +61,7 @@ class SubscriberUI:
                 subscriber.register(topic)
         return subscriber
 
-    def listen_for_messages(self, window):
+    def listen_for_messages(self):
         self.sub_logger.info("Listening....")
         self.message_list.insert("end", "Listening....")
         while True:
@@ -69,7 +70,6 @@ class SubscriberUI:
             sent_time, topic, message = sample.split(" : ")
             self.message_list.insert(tk.END, f"Time= {sent_time} Topic= {topic} Message= {message}")
             self.message_list.see(tk.END)
-            window.update()
             time.sleep(3)
 
     def build_ui(self) -> widget.WINDOW:
@@ -137,7 +137,7 @@ class SubscriberUI:
     def selection_changed(self, *args):
         selection = self.selection.get()
         self.sub_logger.info(f"Selection changed: {selection}")
-        if not selection:
+        if selection:
             self.unsubscribe_btn['state'] = "normal"
         else:
             self.unsubscribe_btn['state'] = "disabled"
@@ -147,28 +147,29 @@ class SubscriberUI:
         self.sub_logger.info(f"Subscribe button pressed {value}")
         self.subscriber.register(value)
         self.topics.append(value)
-        self.topic
+        self.update_option_menu()
         self.topic.set("")
+
+    def update_option_menu(self):
+        menu = self.topic_menu["menu"]
+        menu.delete(0, "end")
+        for string in self.topics:
+            menu.add_command(label=string, command=lambda value=string: self.selection.set(value))
+        self.selection.set(self.topics[0])
 
     def submit_unsubscribe(self):
         value = self.selection.get()
         self.sub_logger.info(f"Unsubscribe button pressed {value}")
         if value:
             self.topics.remove(value)
+        self.update_option_menu()
 
 
-def main():
-    sub_ui = SubscriberUI()
-    arg_parser = sub_ui.config_parser()
-    args = arg_parser.parse_args()
-    sub_ui.subscriber = sub_ui.register(args)
-    time.sleep(3)
-    window = sub_ui.build_ui()
-    window.mainloop()
-    sub_ui.listen_for_messages(window)
+sub_ui = SubscriberUI()
+arg_parser = sub_ui.config_parser()
+args = arg_parser.parse_args()
+sub_ui.subscriber = sub_ui.register(args)
+time.sleep(2)
+sub_ui.dialog.mainloop()
 
-    # threading.Thread(target=listen_for_messages, daemon=True).start()
-
-
-if __name__ == "__main__":
-    main()
+# threading.Thread(target=listen_for_messages, daemon=True).start()
