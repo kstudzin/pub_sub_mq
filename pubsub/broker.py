@@ -7,7 +7,7 @@ from pubsub.util import bind_address
 
 class Broker:
 
-    def process(self):
+    def process_registration(self):
         pass
 
 
@@ -48,7 +48,6 @@ class RoutingBroker(Broker):
         self.registration_sub.setsockopt_string(zmq.SUBSCRIBE, pubsub.REG_PUB)
         self.registration_sub.setsockopt_string(zmq.SUBSCRIBE, pubsub.REG_SUB)
 
-        self.poller.register(self.registration_sub, zmq.POLLIN)
         self.poller.register(self.message_in, zmq.POLLIN)
 
     def process(self):
@@ -59,22 +58,27 @@ class RoutingBroker(Broker):
         events = dict(self.poller.poll())
         for socket in events.keys():
             logging.debug(f"Processing event")
-            if self.registration_sub == socket:
-                message = self.registration_sub.recv_multipart()
-                logging.info(f"Received message: {message}")
-                self.process_registration(message)
-            elif self.message_in == socket:
+            if self.message_in == socket:
                 message = self.message_in.recv_multipart()
                 logging.info(f"Received message: {message}")
                 self.message_out.send_multipart(message)
             else:
                 logging.warning(f"Event on unknown socket {socket}")
 
-    def process_registration(self, message):
+    def process_registration(self):
         """ Process registration messages
 
-        :param message:
+        Blocks until a registration message is received. Once received, performs
+        operations so that this broker can receive publications from or send
+        publications to the appropriate address
+
+        Each registration message consists of 3 string parts:
+        - registration type: string with value REGISTER_PUB or REGISTER_SUB
+        - a topic that it wants to send or receive
+        - an address to receive publications from or send publications to
         """
+        message = self.registration_sub.recv_multipart()
+
         reg_type = message[0].decode('utf-8')
         topic = message[1].decode('utf-8')
         address = message[2].decode('utf-8')
