@@ -12,9 +12,26 @@ class Broker:
 
 
 class RoutingBroker(Broker):
+    """ Routing Broker implementation handles the routing of messages
+
+    The Routing Broker contains the following sockets:
+    - A socket that subscribes to registration messages
+    - Sockets that listen for incoming messages from publishers
+    - A socket that publishes received messages to subscribers
+
+    There are two key events that happen that this broker must respond to
+    - Registration messages from publishers and subscribers
+    - Receiving messages from publishers to route to subscribers
+
+    """
     context = zmq.Context()
 
     def __init__(self, registration_address):
+        """ Creates a routing broker instance
+
+        :param registration_address: the address to use by this broker for publishers
+        and subscribers to register with. Format: <scheme>://<ip_addr>:<port>
+        """
         self.registration_sub = self.context.socket(zmq.SUB)
         self.message_in = self.context.socket(zmq.SUB)
         self.message_out = self.context.socket(zmq.PUB)
@@ -35,7 +52,10 @@ class RoutingBroker(Broker):
         self.poller.register(self.message_in, zmq.POLLIN)
 
     def process(self):
-        """Polls for message on incoming connections and routes to subscribers"""
+        """Polls for incoming messages
+
+        Messages may be registration messages or publications.
+        """
         events = dict(self.poller.poll())
         for socket in events.keys():
             logging.debug(f"Processing event")
@@ -51,6 +71,10 @@ class RoutingBroker(Broker):
                 logging.warning(f"Event on unknown socket {socket}")
 
     def process_registration(self, message):
+        """ Process registration messages
+
+        :param message:
+        """
         reg_type = message[0].decode('utf-8')
         topic = message[1].decode('utf-8')
         address = message[2].decode('utf-8')
