@@ -33,15 +33,23 @@ class RoutingBroker(Broker):
         """Polls for message on incoming connections and routes to subscribers"""
         events = dict(self.poller.poll())
         for socket in events.keys():
+            logging.debug(f"Processing event")
             if self.registration_sub == socket:
-                message = self.registration_sub.recv()
+                message = self.registration_sub.recv_multipart()
+                logging.info(f"Received message: {message}")
                 self.process_registration(message)
-            else:
-                message = socket.recv()
+            elif self.message_in == socket:
+                message = self.message_in.recv_multipart()
+                logging.info(f"Received message: {message}")
                 self.process_message(message)
+            else:
+                logging.warning(f"Event on unknown socket {socket}")
 
     def process_registration(self, message):
-        reg_type, topic, address = message.decode('utf-8').split()
+        reg_type = message[0].decode('utf-8')
+        topic = message[1].decode('utf-8')
+        address = message[2].decode('utf-8')
+
         logging.info(f"Broker processing {reg_type} to topic {topic} at address {address}")
 
         if reg_type == pubsub.REG_PUB:
@@ -57,16 +65,17 @@ class RoutingBroker(Broker):
 
             logging.debug(f"Broker binding subscriber to socket {socket}")
             socket.connect(address)
+        else:
+            logging.warning(f"Received registration message with unknown type: {reg_type}")
 
     def process_message(self, message):
-        decoded = message.decode('utf-8')
-        logging.info(f"Broker received message: {decoded}")
+        logging.info(f"Broker received message: {message}")
 
-        topic, value = decoded.split()
+        topic = message[0].decode('utf-8')
         if topic in self.topic2message_out.keys():
             socket = self.topic2message_out[topic]
 
             logging.info(f"Broker Sending message on topic {topic} to socket {socket}")
-            socket.send_string(decoded)
+            socket.send_multipart(message)
         else:
             logging.info(f"No subscribers listening for topic: {topic}")
