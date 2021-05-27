@@ -10,7 +10,7 @@ class Publisher:
     ctx = zmq.Context()
 
     def __init__(self, registration_address):
-        self.topics = defaultdict(list)
+        self.topics = defaultdict(set)
         self.message_pub = self.ctx.socket(zmq.PUB)
 
         self.registration_pub = self.ctx.socket(zmq.PUB)
@@ -25,7 +25,7 @@ class Publisher:
     def register(self, topic, address):
         logging.info(f"Publisher registering for topic {topic} at address {address}")
 
-        self.topics[topic].append(address)
+        self.topics[topic].add(address)
         self.message_pub.connect(address)
 
         self.registration_pub.send_string(pubsub.REG_PUB, flags=zmq.SNDMORE)

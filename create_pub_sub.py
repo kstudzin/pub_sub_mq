@@ -28,3 +28,10 @@ sub1.wait_for_msg()
 
 pub1.publish(topic2, "other message")
 sub1.wait_for_msg()
+
+sub1.unregister(topic1, "tcp://localhost:5557")
+# sleep(5)
+
+pub1.publish(topic1, "SHOULD NOT RECEIVE")
+pub1.publish(topic2, "should receive")
+sub1.wait_for_msg()

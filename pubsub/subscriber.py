@@ -14,7 +14,8 @@ class Subscriber:
     ctx = zmq.Context()
 
     def __init__(self, registration_address):
-        self.topics = defaultdict(list)
+        self.topics = defaultdict(set)
+        self.addresses = defaultdict(set)
         self.callback = printing_callback
         self.message_sub = self.ctx.socket(zmq.SUB)
 
@@ -30,7 +31,8 @@ class Subscriber:
     def register(self, topic, address):
         logging.info(f"Subscriber registering to topic {topic} at address {address}")
 
-        self.topics[topic].append(address)
+        self.topics[topic].add(address)
+        self.addresses[address].add(topic)
         self.message_sub.connect(address)
 
         self.registration_pub.send_string(pubsub.REG_SUB, flags=zmq.SNDMORE)
@@ -38,6 +40,24 @@ class Subscriber:
         self.registration_pub.send_string(address)
 
         self.message_sub.setsockopt_string(zmq.SUBSCRIBE, topic)
+
+    def unregister(self, topic, address):
+        if address in self.topics[topic]:
+            self.topics[topic].remove(address)
+
+            if len(self.topics[topic]) == 0:
+                self.message_sub.setsockopt_string(zmq.UNSUBSCRIBE, topic)
+
+        if topic in self.addresses[address]:
+            self.addresses[address].remove(topic)
+
+            if len(self.addresses[address]) == 0:
+                self.message_sub.disconnect(address)
+
+        # For now, we won't worry about unbinding the address on the broker
+        # There could be other subscribers listening to that topic. Because
+        # we've disconnected the address and unsubscribed from the topic here,
+        # we shouldn't get those messages, which is the main concern.
 
     def notify(self, topic, message):
         """Receives message"""
