@@ -3,7 +3,7 @@ from collections import defaultdict
 
 import zmq
 import pubsub
-from pubsub.util import MessageType
+from pubsub.util import MessageType, SubscriberTopicNotRegisteredError
 
 
 def printing_callback(topic, message):
@@ -27,16 +27,17 @@ class Subscriber:
     """
     ctx = zmq.Context()
 
-    def __init__(self, registration_address):
+    def __init__(self, address, registration_address):
         """Creates a subscriber instance
 
         :param registration_address: address of the broker with which this publisher
         registers topics with format <scheme>://<ip_addr>:<port>
         """
-        self.topics = defaultdict(set)
-        self.addresses = defaultdict(set)
+        self.address = address
+        self.topics = []
         self.callback = printing_callback
         self.message_sub = self.ctx.socket(zmq.SUB)
+        self.message_sub.connect(address)
 
         self.registration_pub = self.ctx.socket(zmq.PUB)
         self.registration_pub.connect(registration_address)
@@ -47,7 +48,7 @@ class Subscriber:
 
         logging.info(f"Registering with broker at {registration_address}.")
 
-    def register(self, topic, address):
+    def register(self, topic):
         """ Registers a topic and address with the broker
 
         Registering a topic and address tells the broker to send messages about `topic`
@@ -57,19 +58,17 @@ class Subscriber:
         :param topic: a string topic
         :param address: an address string with format <scheme>://<ip_addr>:<port>
         """
-        logging.info(f"Subscriber registering to topic {topic} at address {address}")
+        logging.info(f"Subscriber registering to topic {topic} at address {self.address}")
 
-        self.topics[topic].add(address)
-        self.addresses[address].add(topic)
-        self.message_sub.connect(address)
+        self.topics.append(topic)
 
         self.registration_pub.send_string(pubsub.REG_SUB, flags=zmq.SNDMORE)
         self.registration_pub.send_string(topic, flags=zmq.SNDMORE)
-        self.registration_pub.send_string(address)
+        self.registration_pub.send_string(self.address)
 
         self.message_sub.setsockopt_string(zmq.SUBSCRIBE, topic)
 
-    def unregister(self, topic, address):
+    def unregister(self, topic):
         """ Unregisters a topic and address
 
         Unregistering a topic and address prevents the subscriber from receiving any
@@ -79,17 +78,11 @@ class Subscriber:
         :param address: an address string with format <scheme>://<ip_addr>:<port> that
         has been registered
         """
-        if address in self.topics[topic]:
-            self.topics[topic].remove(address)
+        if topic not in self.topics:
+            raise SubscriberTopicNotRegisteredError(topic, self.address)
 
-            if len(self.topics[topic]) == 0:
-                self.message_sub.setsockopt_string(zmq.UNSUBSCRIBE, topic)
-
-        if topic in self.addresses[address]:
-            self.addresses[address].remove(topic)
-
-            if len(self.addresses[address]) == 0:
-                self.message_sub.disconnect(address)
+        self.topics.remove(topic)
+        self.message_sub.setsockopt_string(zmq.UNSUBSCRIBE, topic)
 
         # For now, we won't worry about unbinding the address on the broker
         # There could be other subscribers listening to that topic. Because

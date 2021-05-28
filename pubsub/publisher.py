@@ -3,7 +3,7 @@ from collections import defaultdict
 
 import zmq
 import pubsub
-from pubsub.util import MessageType
+from pubsub.util import MessageType, PublisherTopicNotRegisteredError
 
 
 class Publisher:
@@ -19,14 +19,16 @@ class Publisher:
     """
     ctx = zmq.Context()
 
-    def __init__(self, registration_address):
+    def __init__(self, address, registration_address):
         """ Creates a publisher instance
 
         :param registration_address: address of the broker with which this publisher
         registers topics with format <scheme>://<ip_addr>:<port>
         """
-        self.topics = defaultdict(set)
+        self.address = address
+        self.topics = []
         self.message_pub = self.ctx.socket(zmq.PUB)
+        self.message_pub.bind(address)
 
         self.registration_pub = self.ctx.socket(zmq.PUB)
         self.registration_pub.connect(registration_address)
@@ -37,7 +39,7 @@ class Publisher:
 
         logging.info(f"Registering with broker at {registration_address}.")
 
-    def register(self, topic, address):
+    def register(self, topic):
         """ Register a topic and address with the broker
 
         Registering a topic and address tells the broker to expect messages about `topic`
@@ -47,14 +49,13 @@ class Publisher:
         :param topic: a string topic
         :param address: an address string with format <scheme>://<ip_addr>:<port>
         """
-        logging.info(f"Publisher registering for topic {topic} at address {address}")
+        logging.info(f"Publisher registering for topic {topic} at address {self.address}")
 
-        self.topics[topic].add(address)
-        self.message_pub.connect(address)
+        self.topics.append(topic)
 
         self.registration_pub.send_string(pubsub.REG_PUB, flags=zmq.SNDMORE)
         self.registration_pub.send_string(topic, flags=zmq.SNDMORE)
-        self.registration_pub.send_string(address)
+        self.registration_pub.send_string(self.address)
 
     def publish(self, topic, message, message_type=MessageType.STRING):
         """ Publishes message with the given topic
@@ -64,6 +65,10 @@ class Publisher:
         :param message_type: the type of the message to send. Default = MessageType.STRING
         (valid values are MessageType.STRING, MessageType.PYOBJ, and MessageType.JSON)
         """
+
+        if topic not in self.topics:
+            raise PublisherTopicNotRegisteredError(topic, self.address)
+
         self.message_pub.send_string(topic, flags=zmq.SNDMORE)
         self.message_pub.send_string(message_type, flags=zmq.SNDMORE)
         self.type2sender[message_type](message)

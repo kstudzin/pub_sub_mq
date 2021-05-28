@@ -11,3 +11,23 @@ class MessageType:
     STRING = "STRING"
     PYOBJ = "PYOBJ"
     JSON = "JSON"
+
+
+class TopicNotRegisteredError(Exception):
+
+    def __init__(self, name, topic, address):
+        self.name = name
+        self.address = address
+        self.topic = topic
+
+
+class PublisherTopicNotRegisteredError(TopicNotRegisteredError):
+
+    def __init__(self, topic, address):
+        super.__init__("Publisher", topic, address)
+
+
+class SubscriberTopicNotRegisteredError(TopicNotRegisteredError):
+
+    def __init__(self, topic, address):
+        super.__init__("Subscriber", topic, address)

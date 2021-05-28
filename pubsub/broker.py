@@ -36,11 +36,9 @@ class RoutingBroker(Broker):
         self.message_in = self.context.socket(zmq.SUB)
         self.message_out = self.context.socket(zmq.PUB)
 
-        self.bound_in = []
         self.bound_out = []
 
         self.topic2message_out = {}
-        self.poller = zmq.Poller()
         self.connect_address = registration_address
 
         address = util.bind_address(self.connect_address)
@@ -48,22 +46,15 @@ class RoutingBroker(Broker):
         self.registration_sub.setsockopt_string(zmq.SUBSCRIBE, pubsub.REG_PUB)
         self.registration_sub.setsockopt_string(zmq.SUBSCRIBE, pubsub.REG_SUB)
 
-        self.poller.register(self.message_in, zmq.POLLIN)
-
     def process(self):
         """Polls for incoming messages
 
         Messages may be registration messages or publications.
         """
-        events = dict(self.poller.poll())
-        for socket in events.keys():
-            logging.debug(f"Processing event")
-            if self.message_in == socket:
-                message = self.message_in.recv_multipart()
-                logging.info(f"Received message: {message}")
-                self.message_out.send_multipart(message)
-            else:
-                logging.warning(f"Event on unknown socket {socket}")
+        message = self.message_in.recv_multipart()
+        logging.info(f"Received message: {message}")
+
+        self.message_out.send_multipart(message)
 
     def process_registration(self):
         """ Process registration messages
@@ -86,15 +77,11 @@ class RoutingBroker(Broker):
         logging.info(f"Broker processing {reg_type} to topic {topic} at address {address}")
 
         if reg_type == pubsub.REG_PUB:
-            if address not in self.bound_in:
-                self.bound_in.append(address)
-                self.message_in.bind(bind_address(address))
+            self.message_in.connect(address)
             self.message_in.setsockopt_string(zmq.SUBSCRIBE, topic)
         elif reg_type == pubsub.REG_SUB:
             if address not in self.bound_out:
                 self.bound_out.append(address)
-                self.message_out.bind(bind_address(address))
-
-            logging.debug(f"Broker binding subscriber to socket {self.message_out}")
+                self.message_out.bind(address)
         else:
             logging.warning(f"Received registration message with unknown type: {reg_type}")
