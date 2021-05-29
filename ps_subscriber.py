@@ -167,8 +167,8 @@ class SubscriberUI:
 
 sub_ui = SubscriberUI()
 arg_parser = sub_ui.config_parser()
-args = arg_parser.parse_args()
-sub_ui.subscriber = sub_ui.register(args)
+sub_args = arg_parser.parse_args()
+sub_ui.subscriber = sub_ui.register(sub_args)
 time.sleep(2)
 sub_ui.dialog.mainloop()
 
