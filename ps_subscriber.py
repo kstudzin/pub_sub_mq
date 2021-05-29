@@ -38,7 +38,7 @@ class SubscriberUI:
         """
         parser = ap.ArgumentParser(prog='Subscriber', usage='%(prog)s [options]',
                                    description='Start subscribing to topics.')
-        parser.add_argument('--port', metavar='Port', type=int, nargs='?',
+        parser.add_argument('--address', metavar='Address', type=str, nargs='+',
                             help='port numbers')
         parser.add_argument('--topics', metavar='Topics', type=str, nargs='+',
                             help='topics to subscribe to')
@@ -51,8 +51,8 @@ class SubscriberUI:
         :param args: A port number and a list of topics provided in arguments
         :return: A Subscriber object
         """
-        if args.port is not None:
-            subscriber = Subscriber(f"tcp://localhost:{args.port}")
+        if args.address is not None:
+            subscriber = Subscriber(args.address[0], args.address[1])
         else:
             return None
 
@@ -163,6 +163,7 @@ class SubscriberUI:
         if value:
             self.topics.remove(value)
         self.update_option_menu()
+        self.subscriber.unregister(value)
 
 
 sub_ui = SubscriberUI()

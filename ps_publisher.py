@@ -12,7 +12,7 @@ def config_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(prog='Publisher', usage='%(prog)s [options]',
                                      description='Start publishing topics.')
-    parser.add_argument('--port', metavar='Port', type=int, nargs='?',
+    parser.add_argument('--address', metavar='Address', type=str, nargs='+',
                         help='port numbers')
     parser.add_argument('--topics', metavar='Topics', type=str, nargs='+',
                         help='topics to publish')
@@ -25,8 +25,8 @@ def register(args) -> Publisher:
     :param args: A port number and a list of topics provided in arguments
     :return: A Publisher object
     """
-    if args.port is not None:
-        publisher = Publisher(f"tcp://localhost:{args.port}")
+    if args.address is not None:
+        publisher = Publisher(args.address[0], args.address[1])
     else:
         return None
 
