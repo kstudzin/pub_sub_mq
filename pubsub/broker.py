@@ -1,53 +1,87 @@
-from urllib.parse import urlparse
-
+import logging
 import zmq
+import pubsub
+from pubsub import util
+from pubsub.util import bind_address
 
 
 class Broker:
 
-    def register_pub(self, topic, addr):
-        """Publisher factory"""
-        pass
-
-    def register_sub(self, topic, addr):
-        """Subscriber factory"""
-        pass
-
-    def process(self):
+    def process_registration(self):
         pass
 
 
 class RoutingBroker(Broker):
-    context = zmq.Context()
-    registration_req = context.socket(zmq.REQ)
-    registration_rep = context.socket(zmq.REP)
+    """ Routing Broker implementation handles the routing of messages
 
-    connect_address = None
+    The Routing Broker contains the following sockets:
+    - A socket that subscribes to registration messages
+    - Sockets that listen for incoming messages from publishers
+    - A socket that publishes received messages to subscribers
+
+    There are two key events that happen that this broker must respond to
+    - Registration messages from publishers and subscribers
+    - Receiving messages from publishers to route to subscribers
+
+    """
+    context = zmq.Context()
 
     def __init__(self, registration_address):
+        """ Creates a routing broker instance
+
+        :param registration_address: the address to use by this broker for publishers
+        and subscribers to register with. Format: <scheme>://<ip_addr>:<port>
+        """
+        self.registration_sub = self.context.socket(zmq.SUB)
+        self.message_in = self.context.socket(zmq.SUB)
+        self.message_out = self.context.socket(zmq.PUB)
+
+        self.bound_out = []
+
+        self.topic2message_out = {}
         self.connect_address = registration_address
-        self.registration_req.connect(registration_address)
 
-    def is_server(self):
-        reg_url = urlparse(self.connect_address)
-        bind_address = "{0}://*:{1}".format(reg_url.scheme, reg_url.port)
-        self.registration_rep.bind(bind_address)
-
-    def register_pub(self, topic, address):
-        """Creates and returns a publisher with the given address. Saves a subscriber connection."""
-        self.registration_req.send_string(f"pub {topic} {address}")
-        message = self.registration_req.recv()
-        print(message)
-
-    def register_sub(self, topic, address):
-        """Creates and returns a subscriber with the given address. Connects new subscriber to
-        broker's bound publish address"""
-        self.registration_req.send_string(f"sub {topic} {address}")
-        message = self.registration_req.recv()
-        print(message)
+        address = util.bind_address(self.connect_address)
+        self.registration_sub.bind(address)
+        self.registration_sub.setsockopt_string(zmq.SUBSCRIBE, pubsub.REG_PUB)
+        self.registration_sub.setsockopt_string(zmq.SUBSCRIBE, pubsub.REG_SUB)
 
     def process(self):
-        """Polls for message on incoming connections and routes to subscribers"""
-        message = self.registration_rep.recv()
-        print(message)
-        self.registration_rep.send_string("received")
+        """Polls for incoming messages
+
+        Messages may be registration messages or publications.
+        """
+        message = self.message_in.recv_multipart()
+        logging.info(f"Received message: {message}")
+
+        self.message_out.send_multipart(message)
+
+    def process_registration(self):
+        """ Process registration messages
+
+        Blocks until a registration message is received. Once received, performs
+        operations so that this broker can receive publications from or send
+        publications to the appropriate address
+
+        Each registration message consists of 3 string parts:
+        - registration type: string with value REGISTER_PUB or REGISTER_SUB
+        - a topic that it wants to send or receive
+        - an address to receive publications from or send publications to
+        """
+        message = self.registration_sub.recv_multipart()
+
+        reg_type = message[0].decode('utf-8')
+        topic = message[1].decode('utf-8')
+        address = message[2].decode('utf-8')
+
+        logging.info(f"Broker processing {reg_type} to topic {topic} at address {address}")
+
+        if reg_type == pubsub.REG_PUB:
+            self.message_in.connect(address)
+            self.message_in.setsockopt_string(zmq.SUBSCRIBE, topic)
+        elif reg_type == pubsub.REG_SUB:
+            if address not in self.bound_out:
+                self.bound_out.append(address)
+                self.message_out.bind(address)
+        else:
+            logging.warning(f"Received registration message with unknown type: {reg_type}")
