@@ -59,6 +59,7 @@ class SubscriberUI:
         if args.topics is not None:
             for topic in args.topics:
                 subscriber.register(topic)
+                subscriber.register_callback(listen_for_messages)
         return subscriber
 
     def listen_for_messages(self):

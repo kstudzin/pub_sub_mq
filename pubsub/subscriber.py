@@ -123,3 +123,53 @@ class Subscriber:
         :param callback: the function or method to call when a message is received
         """
         self.callback = callback
+
+# *****************************************************************************
+# *                       Direct Subscriber                                   *
+# *****************************************************************************
+
+
+class DirectSubscriber:
+    ENDPOINT = "tcp://{address}:{port}"
+
+    def __init__(self, topic, address="127.0.0.1", port="5556"):
+        self.topic = topic
+        self.topics = [topic]
+        self.callback = printing_callback
+        self.context = zmq.Context()
+        self.message_sub = self.context.socket(zmq.REP)
+        self.ipaddress = self.ENDPOINT.format(address=address, port=port)
+        self.message_sub.bind(self.ipaddress)
+        self.register(self.topic)
+
+        self.type2receiver = {MessageType.STRING: self.message_sub.recv_string,
+                              MessageType.PYOBJ: self.message_sub.recv_pyobj,
+                              MessageType.JSON: self.message_sub.recv_json}
+
+    def register(self, topic):
+        handshake_socket = self.context.socket(zmq.REQ)
+        location = self.ENDPOINT.format(address="127.0.0.1", port="5555")
+        handshake_socket.connect(location)
+        # todo ensure addresses are unique?
+        logging.info(f"Subscriber registering to topic {topic} at address {location}")
+        handshake_socket.send_string(pubsub.REG_SUB, flags=zmq.SNDMORE)
+        handshake_socket.send_string(topic, flags=zmq.SNDMORE)
+        handshake_socket.send_string(location)
+
+    def unregister(self, topic):
+        if topic not in self.topics:
+            raise SubscriberTopicNotRegisteredError(topic, self.address)
+
+        self.topics.remove(topic)
+        # todo remove subscriber from publisher
+
+    def wait_for_msg(self):
+        topic = self.message_sub.recv_string()
+        logging.info(f"Subscriber has registered for topic {topic}")
+        # todo compare time to message timestamp?
+        message_type = self.message_sub.recv_string()
+        message = self.type2receiver[message_type]()
+        self.notify(topic, message)
+
+    def notify(self, topic, message):
+        self.callback(topic, message)

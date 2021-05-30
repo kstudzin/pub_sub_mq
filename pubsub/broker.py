@@ -1,4 +1,6 @@
 import logging
+from collections import defaultdict
+
 import zmq
 import pubsub
 from pubsub import util
@@ -24,9 +26,10 @@ class RoutingBroker(Broker):
     - Receiving messages from publishers to route to subscribers
 
     """
+    ENDPOINT = "tcp://{address}:{port}"
     context = zmq.Context()
 
-    def __init__(self, registration_address):
+    def __init__(self, address="127.0.0.1", port="5555"):
         """ Creates a routing broker instance
 
         :param registration_address: the address to use by this broker for publishers
@@ -39,7 +42,7 @@ class RoutingBroker(Broker):
         self.bound_out = []
 
         self.topic2message_out = {}
-        self.connect_address = registration_address
+        self.connect_address = self.ENDPOINT.format(address=address, port=port)
 
         address = util.bind_address(self.connect_address)
         self.registration_sub.bind(address)
@@ -85,3 +88,47 @@ class RoutingBroker(Broker):
                 self.message_out.bind(address)
         else:
             logging.warning(f"Received registration message with unknown type: {reg_type}")
+
+# *****************************************************************************
+# *                       Direct Broker                                       *
+# *****************************************************************************
+
+
+class DirectBroker(Broker):
+    ENDPOINT = "tcp://{address}:{port}"
+
+    def __init__(self, address="127.0.0.1", port=5555):
+        self.context = zmq.Context()
+        self.inbound_socket = self.context.socket(zmq.REP)
+        self.connect_address = self.ENDPOINT.format(address=address, port=port)
+        self.inbound_socket.bind(self.connect_address)
+        self.registry = {pubsub.REG_PUB: defaultdict(list), pubsub.REG_SUB: defaultdict(list)}
+
+    def process(self):
+        while True:
+            self.process_registration()
+
+    def process_registration(self):
+        message = self.inbound_socket.recv_multipart()
+
+        reg_type = message[0].decode('utf-8')
+        topic = message[1].decode('utf-8')
+        address = message[2].decode('utf-8')
+
+        logging.info(f"Direct Broker: processing {reg_type} to topic {topic} at address {address}")
+
+        if address not in self.registry[reg_type][topic]:
+            self.registry[reg_type][topic].append(address)
+
+        opposite = pubsub.REG_SUB if reg_type == pubsub.REG_PUB else pubsub.REG_PUB
+
+        if self.registry[opposite]:
+            response = " ".join(self.registry[opposite][topic])
+        else:
+            response = None
+
+        logging.info(f"Direct Broker: sending {opposite} to topic {topic} with response {response}")
+        self.inbound_socket.send_string(opposite, flags=zmq.SNDMORE)
+        self.inbound_socket.send_string(topic, flags=zmq.SNDMORE)
+        self.inbound_socket.send_string(response)
+
