@@ -30,8 +30,8 @@ class Publisher:
         self.message_pub = self.ctx.socket(zmq.PUB)
         self.message_pub.bind(address)
 
-        self.registration_pub = self.ctx.socket(zmq.PUB)
-        self.registration_pub.connect(registration_address)
+        self.registration = self.ctx.socket(zmq.REQ)
+        self.registration.connect(registration_address)
 
         self.type2sender = {MessageType.STRING: self.message_pub.send_string,
                             MessageType.PYOBJ: self.message_pub.send_pyobj,
@@ -53,9 +53,12 @@ class Publisher:
 
         self.topics.append(topic)
 
-        self.registration_pub.send_string(pubsub.REG_PUB, flags=zmq.SNDMORE)
-        self.registration_pub.send_string(topic, flags=zmq.SNDMORE)
-        self.registration_pub.send_string(self.address)
+        self.registration.send_string(pubsub.REG_PUB, flags=zmq.SNDMORE)
+        self.registration.send_string(topic, flags=zmq.SNDMORE)
+        self.registration.send_string(self.address)
+
+        broker_type = self.registration.recv_string()
+        logging.info(f"Connected to {broker_type} broker")
 
     def publish(self, topic, message, message_type=MessageType.STRING):
         """ Publishes message with the given topic

@@ -8,7 +8,7 @@ def msg_proc_loop(broker):
 
 
 def main():
-    broker = pubsub.broker.RoutingBroker("tcp://localhost:5555")
+    broker = pubsub.broker.RoutingBroker("tcp://127.0.0.1:5555")
     process_msg_thread = threading.Thread(target=msg_proc_loop,
                                           args=[broker],
                                           daemon=True)

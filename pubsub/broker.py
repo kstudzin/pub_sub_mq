@@ -2,7 +2,11 @@ import logging
 import zmq
 import pubsub
 from pubsub import util
-from pubsub.util import bind_address
+
+
+class BrokerType:
+    DIRECT = "DIRECT"
+    ROUTE = "ROUTE"
 
 
 class Broker:
@@ -32,19 +36,14 @@ class RoutingBroker(Broker):
         :param registration_address: the address to use by this broker for publishers
         and subscribers to register with. Format: <scheme>://<ip_addr>:<port>
         """
-        self.registration_sub = self.context.socket(zmq.SUB)
+        self.registration = self.context.socket(zmq.REP)
         self.message_in = self.context.socket(zmq.SUB)
         self.message_out = self.context.socket(zmq.PUB)
 
-        self.bound_out = []
-
         self.topic2message_out = {}
-        self.connect_address = registration_address
 
-        address = util.bind_address(self.connect_address)
-        self.registration_sub.bind(address)
-        self.registration_sub.setsockopt_string(zmq.SUBSCRIBE, pubsub.REG_PUB)
-        self.registration_sub.setsockopt_string(zmq.SUBSCRIBE, pubsub.REG_SUB)
+        self.connect_address = registration_address
+        self.registration.bind(registration_address)
 
     def process(self):
         """Polls for incoming messages
@@ -68,7 +67,7 @@ class RoutingBroker(Broker):
         - a topic that it wants to send or receive
         - an address to receive publications from or send publications to
         """
-        message = self.registration_sub.recv_multipart()
+        message = self.registration.recv_multipart()
 
         reg_type = message[0].decode('utf-8')
         topic = message[1].decode('utf-8')
@@ -80,8 +79,8 @@ class RoutingBroker(Broker):
             self.message_in.connect(address)
             self.message_in.setsockopt_string(zmq.SUBSCRIBE, topic)
         elif reg_type == pubsub.REG_SUB:
-            if address not in self.bound_out:
-                self.bound_out.append(address)
-                self.message_out.bind(address)
+            self.message_out.connect(address)
         else:
             logging.warning(f"Received registration message with unknown type: {reg_type}")
+
+        self.registration.send_string(BrokerType.ROUTE)

@@ -37,10 +37,10 @@ class Subscriber:
         self.topics = []
         self.callback = printing_callback
         self.message_sub = self.ctx.socket(zmq.SUB)
-        self.message_sub.connect(address)
+        self.message_sub.bind(address)
 
-        self.registration_pub = self.ctx.socket(zmq.PUB)
-        self.registration_pub.connect(registration_address)
+        self.registration = self.ctx.socket(zmq.REQ)
+        self.registration.connect(registration_address)
 
         self.type2receiver = {MessageType.STRING: self.message_sub.recv_string,
                               MessageType.PYOBJ: self.message_sub.recv_pyobj,
@@ -62,11 +62,14 @@ class Subscriber:
 
         self.topics.append(topic)
 
-        self.registration_pub.send_string(pubsub.REG_SUB, flags=zmq.SNDMORE)
-        self.registration_pub.send_string(topic, flags=zmq.SNDMORE)
-        self.registration_pub.send_string(self.address)
+        self.registration.send_string(pubsub.REG_SUB, flags=zmq.SNDMORE)
+        self.registration.send_string(topic, flags=zmq.SNDMORE)
+        self.registration.send_string(self.address)
 
         self.message_sub.setsockopt_string(zmq.SUBSCRIBE, topic)
+
+        broker_type = self.registration.recv_string()
+        logging.info(f"Connected to {broker_type} broker")
 
     def unregister(self, topic):
         """ Unregisters a topic and address
