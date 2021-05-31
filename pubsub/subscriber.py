@@ -30,14 +30,36 @@ class Subscriber:
     def __init__(self, address, registration_address):
         """Creates a subscriber instance
 
+        :param address: the address of this subscriber. String with
+        format <scheme>://<ip_addr>:<port>
         :param registration_address: address of the broker with which this publisher
-        registers topics with format <scheme>://<ip_addr>:<port>
+        registers topics. String with format <scheme>://<ip_addr>:<port>
         """
         self.address = address
         self.topics = []
         self.callback = printing_callback
+
+        # The message sub socket receives messages. If using the
+        # ROUTING broker it is bound to the address of this subscriber.
+        # If using the DIRECT broker it will be connected directly to the
+        # publisher address.
         self.message_sub = self.ctx.socket(zmq.SUB)
+
+        # TODO create socket that will subscribe to new publisher information
+        # This socket will only be used with the DIRECT router. When it is
+        # used it will be be bound to this subscribers address
+
+        # TODO move this bind
+        # Because either this socket or the publisher registration notification
+        # socket will be bound to this subscriber address, we cannot bind either
+        # until we know which broker we are using. Luckily, the reply from the
+        # registration request tells us which broker type is being used
         self.message_sub.bind(address)
+
+        # TODO add address bound flag
+        # An address can only be bound once. Because we need to bind the address
+        # in a place that will be called more than once, we can add a flag here
+        # that gets switched once the address has been bound.
 
         self.registration = self.ctx.socket(zmq.REQ)
         self.registration.connect(registration_address)
@@ -51,12 +73,11 @@ class Subscriber:
     def register(self, topic):
         """ Registers a topic and address with the broker
 
-        Registering a topic and address tells the broker to send messages about `topic`
-        to `address`. This method must be called before any messages about the topic
+        Registering a topic tells the broker to send messages about `topic` to this
+        subscriber. This method must be called before any messages about the topic
         will be received.
 
         :param topic: a string topic
-        :param address: an address string with format <scheme>://<ip_addr>:<port>
         """
         logging.info(f"Subscriber registering to topic {topic} at address {self.address}")
 
@@ -68,24 +89,37 @@ class Subscriber:
 
         self.message_sub.setsockopt_string(zmq.SUBSCRIBE, topic)
 
+        # TODO socket listening for new publishers should also subscribe to the topic
+        # This allows it to only receive notifications about publishers it wants to
+        # connect to
+
         broker_type = self.registration.recv_string()
+
+        # TODO process response from registration
+        # If broker is ROUTING we need to the socket accepting messages to be bound
+        # to this subscriber's address
+        # If broker is DIRECT we need to connect the socket accepting messages to
+        # each address received. Additionally, if we are using the DIRECT broker
+        # we need to be able to receive notifications about new publishers so
+        # we need to connect the appropriate socket to this subscriber's address
+
         logging.info(f"Connected to {broker_type} broker")
 
     def unregister(self, topic):
         """ Unregisters a topic and address
 
-        Unregistering a topic and address prevents the subscriber from receiving any
-        further notifications about topic on the given address.
+        Unregistering a topic prevents the subscriber from receiving any
+        further notifications about topic.
 
         :param topic: a string topic that has been registered
-        :param address: an address string with format <scheme>://<ip_addr>:<port> that
-        has been registered
         """
         if topic not in self.topics:
             raise SubscriberTopicNotRegisteredError(topic, self.address)
 
         self.topics.remove(topic)
         self.message_sub.setsockopt_string(zmq.UNSUBSCRIBE, topic)
+
+        # TODO unsubscribe registration socket
 
         # For now, we won't worry about unbinding the address on the broker
         # There could be other subscribers listening to that topic. Because
@@ -126,3 +160,15 @@ class Subscriber:
         :param callback: the function or method to call when a message is received
         """
         self.callback = callback
+
+    def wait_for_registration(self):
+        """ Waits for a registration to be published
+
+        Blocks until a registration has been received and then connects the
+        subscriber so that it can begin receiving messages on that address
+        """
+        # TODO receive notification of new publisher
+
+        # TODO connect message receiving socket to new publisher address
+
+        pass

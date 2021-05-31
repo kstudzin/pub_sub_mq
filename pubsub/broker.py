@@ -11,6 +11,12 @@ class BrokerType:
 
 
 class AbstractBroker(ABC):
+    """ Broker for abstracting pub/sub address
+
+    The broker abstracts addresses by requiring publishers and subscribers
+    to first register with it. It is assumed that the address of the broker
+    is well-known to all publishers and subscribers.
+    """
     context = zmq.Context()
 
     def __init__(self, registration_address):
@@ -42,18 +48,16 @@ class AbstractBroker(ABC):
         if reg_type == pubsub.REG_PUB:
             self.process_pub_registration(topic, address)
         elif reg_type == pubsub.REG_SUB:
-            self.process_sub_registration(address)
+            self.process_sub_registration(topic, address)
         else:
             logging.warning(f"Received registration message with unknown type: {reg_type}")
-
-        self.registration.send_string(BrokerType.ROUTE)
 
     @abstractmethod
     def process_pub_registration(self, topic, address):
         pass
 
     @abstractmethod
-    def process_sub_registration(self, address):
+    def process_sub_registration(self, topic, address):
         pass
 
 
@@ -61,13 +65,17 @@ class RoutingBroker(AbstractBroker):
     """ Routing Broker implementation handles the routing of messages
 
     The Routing Broker contains the following sockets:
-    - A socket that subscribes to registration messages
-    - Sockets that listen for incoming messages from publishers
+    - A socket that listen for incoming messages from publishers
     - A socket that publishes received messages to subscribers
+
+    (These are in addition to the registration socket in the super class)
 
     There are two key events that happen that this broker must respond to
     - Registration messages from publishers and subscribers
     - Receiving messages from publishers to route to subscribers
+
+    There is a method to process each of these events that must be run in
+    loops in threads
 
     """
 
@@ -82,9 +90,10 @@ class RoutingBroker(AbstractBroker):
         self.message_out = self.context.socket(zmq.PUB)
 
     def process(self):
-        """Polls for incoming messages
+        """ Process messages
 
-        Messages may be registration messages or publications.
+        Receives messages from publishers and publishes
+        messages to subscribers
         """
         message = self.message_in.recv_multipart()
         logging.info(f"Received message: {message}")
@@ -92,8 +101,47 @@ class RoutingBroker(AbstractBroker):
         self.message_out.send_multipart(message)
 
     def process_pub_registration(self, topic, address):
+        # Connect address to message receiving socket and
+        # subscribe to topic
         self.message_in.connect(address)
         self.message_in.setsockopt_string(zmq.SUBSCRIBE, topic)
 
-    def process_sub_registration(self, address):
+        # Complete registration with reply containing broker type
+        self.registration.send_string(BrokerType.ROUTE)
+
+    def process_sub_registration(self, topic, address):
+        # Connect the message sending socket to the new
+        # subscriber
         self.message_out.connect(address)
+
+        # Complete registration with reply containing broker type
+        self.registration.send_string(BrokerType.ROUTE)
+
+
+class DirectBroker(AbstractBroker):
+
+    def __init__(self, registration_address):
+        # TODO call super class constructor
+
+        # TODO add data structure that maps a topic to a list of
+        # publisher addresses publishing on that topic
+
+        # TODO add socket that can publish newly registered publishers
+        # to registered subscribers
+        pass
+
+    def process_pub_registration(self, topic, address):
+        # TODO add publisher to map of topics to addresses
+
+        # TODO publish topic and address of new publisher to subscribers
+
+        # TODO Send broker type reply
+        pass
+
+    def process_sub_registration(self, topic, address):
+        # TODO connect subscriber address to socket that publishes new
+        # publisher connection information
+
+        # TODO send multipart message with broker type, number of addresses
+        # being sent, and a list of addresses
+        pass
