@@ -135,18 +135,18 @@ class DirectBroker(AbstractBroker):
         # TODO add publisher to map of topics to addresses
         self.registry[topic].append(address)
         # TODO publish topic and address of new publisher to subscribers
-        self.message_out.connect(address)
-        self.message_out.send_string(topic, flags=zmq.SNDMORE)
-        self.message_out.send_string(address)
+        self.process_sub_registration(topic, address)
         # TODO Send broker type reply
         self.registration.send_string(BrokerType.DIRECT)
 
     def process_sub_registration(self, topic, address):
         # TODO connect subscriber address to socket that publishes new
         # publisher connection information
-        self.registration.connect(address)
+        self.message_out.connect(address)
         # TODO send multipart message with broker type, number of addresses
         # being sent, and a list of addresses
-        self.registration.send_string(BrokerType.DIRECT, flags=zmq.SNDMORE)
-        self.registration.send_string(self.registry[topic])
+        if self.registry[topic]:
+            self.message_out.send_string(BrokerType.DIRECT, flags=zmq.SNDMORE)
+            self.message_out.send_string("Address", flags=zmq.SNDMORE)
+            self.message_out.send_string(", ".join(self.registry[topic]))
 
