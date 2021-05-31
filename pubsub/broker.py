@@ -1,5 +1,6 @@
 import logging
 from abc import abstractmethod, ABC
+from collections import defaultdict
 
 import zmq
 import pubsub
@@ -122,26 +123,30 @@ class DirectBroker(AbstractBroker):
 
     def __init__(self, registration_address):
         # TODO call super class constructor
-
+        super().__init__(registration_address)
         # TODO add data structure that maps a topic to a list of
         # publisher addresses publishing on that topic
-
+        self.registry = defaultdict(list)
         # TODO add socket that can publish newly registered publishers
         # to registered subscribers
-        pass
+        self.message_out = self.context.socket(zmq.PUB)
 
     def process_pub_registration(self, topic, address):
         # TODO add publisher to map of topics to addresses
-
+        self.registry[topic].append(address)
         # TODO publish topic and address of new publisher to subscribers
-
+        self.message_out.connect(address)
+        self.message_out.send_string(topic, flags=zmq.SNDMORE)
+        self.message_out.send_string(address)
         # TODO Send broker type reply
-        pass
+        self.registration.send_string(BrokerType.DIRECT)
 
     def process_sub_registration(self, topic, address):
         # TODO connect subscriber address to socket that publishes new
         # publisher connection information
-
+        self.registration.connect(address)
         # TODO send multipart message with broker type, number of addresses
         # being sent, and a list of addresses
-        pass
+        self.registration.send_string(BrokerType.DIRECT, flags=zmq.SNDMORE)
+        self.registration.send_string(self.registry[topic])
+
