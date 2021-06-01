@@ -4,7 +4,7 @@ from collections import defaultdict
 import zmq
 import pubsub
 from pubsub.broker import BrokerType
-from pubsub.util import MessageType, SubscriberTopicNotRegisteredError
+from pubsub.util import MessageType, TopicNotRegisteredError
 
 
 def printing_callback(topic, message):
@@ -130,7 +130,8 @@ class Subscriber:
         :param topic: a string topic that has been registered
         """
         if topic not in self.topics:
-            raise SubscriberTopicNotRegisteredError(topic, self.address)
+            raise TopicNotRegisteredError(topic, self.address, "Topic has not been registered with subscriber. Cannot "
+                                                               "unregister.")
 
         self.topics.remove(topic)
         self.message_sub.setsockopt_string(zmq.UNSUBSCRIBE, topic)

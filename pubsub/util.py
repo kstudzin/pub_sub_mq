@@ -15,19 +15,11 @@ class MessageType:
 
 class TopicNotRegisteredError(Exception):
 
-    def __init__(self, name, topic, address):
-        self.name = name
-        self.address = address
+    def __init__(self, topic, address, message):
         self.topic = topic
+        self.address = address
+        self.message = message
+        super(Exception, self).__init__(self.message)
 
-
-class PublisherTopicNotRegisteredError(TopicNotRegisteredError):
-
-    def __init__(self, topic, address):
-        super.__init__("Publisher", topic, address)
-
-
-class SubscriberTopicNotRegisteredError(TopicNotRegisteredError):
-
-    def __init__(self, topic, address):
-        super.__init__("Subscriber", topic, address)
+    def __str__(self):
+        return f"{self.message} Topic: {self.topic} Address: {self.address}"

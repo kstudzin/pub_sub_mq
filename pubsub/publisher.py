@@ -3,7 +3,7 @@ from collections import defaultdict
 
 import zmq
 import pubsub
-from pubsub.util import MessageType, PublisherTopicNotRegisteredError
+from pubsub.util import MessageType, TopicNotRegisteredError
 
 
 class Publisher:
@@ -70,7 +70,8 @@ class Publisher:
         """
 
         if topic not in self.topics:
-            raise PublisherTopicNotRegisteredError(topic, self.address)
+            raise TopicNotRegisteredError(topic, self.address, "Topic has not been registered with publisher. Cannot "
+                                                               "be published")
 
         self.message_pub.send_string(topic, flags=zmq.SNDMORE)
         self.message_pub.send_string(message_type, flags=zmq.SNDMORE)
