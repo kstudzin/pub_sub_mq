@@ -133,9 +133,11 @@ class DirectBroker(AbstractBroker):
 
     def process_pub_registration(self, topic, address):
         # TODO add publisher to map of topics to addresses
-        self.registry[topic].append(address)
+        encoded_address = address.encode('utf-8')
+        self.registry[topic].append(encoded_address)
         # TODO publish topic and address of new publisher to subscribers
-        self.process_sub_registration(topic, address)
+        self.message_out.send_string(topic, flags=zmq.SNDMORE)
+        self.message_out.send_string(encoded_address)
         # TODO Send broker type reply
         self.registration.send_string(BrokerType.DIRECT)
 
@@ -147,6 +149,7 @@ class DirectBroker(AbstractBroker):
         # being sent, and a list of addresses
         if self.registry[topic]:
             self.message_out.send_string(BrokerType.DIRECT, flags=zmq.SNDMORE)
-            self.message_out.send_string("Address", flags=zmq.SNDMORE)
-            self.message_out.send_string(", ".join(self.registry[topic]))
-
+            self.message_out.send_string(str(len(self.registry[topic])), flags=zmq.SNDMORE)
+            self.message_out.send_string(self.registry[topic])
+        else:
+            self.message_out.send_string(BrokerType.DIRECT)
