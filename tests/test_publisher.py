@@ -1,11 +1,6 @@
-import concurrent
-import concurrent.futures
 import logging
-import os
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from time import sleep
-from unittest import mock
 
 import pytest
 import zmq
