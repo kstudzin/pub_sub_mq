@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import zmq
 import pubsub
+from pubsub.broker import BrokerType
 from pubsub.util import MessageType, SubscriberTopicNotRegisteredError
 
 
@@ -36,6 +37,7 @@ class Subscriber:
         registers topics. String with format <scheme>://<ip_addr>:<port>
         """
         self.address = address
+        self.is_address_bound = False
         self.topics = []
         self.callback = printing_callback
 
@@ -45,18 +47,18 @@ class Subscriber:
         # publisher address.
         self.message_sub = self.ctx.socket(zmq.SUB)
 
-        # TODO create socket that will subscribe to new publisher information
+        # create socket that will subscribe to new publisher information
         # This socket will only be used with the DIRECT router. When it is
         # used it will be be bound to this subscribers address
+        self.publisher_sub = self.ctx.socket(zmq.SUB)
 
-        # TODO move this bind
+        # move this bind
         # Because either this socket or the publisher registration notification
         # socket will be bound to this subscriber address, we cannot bind either
         # until we know which broker we are using. Luckily, the reply from the
         # registration request tells us which broker type is being used
-        self.message_sub.bind(address)
 
-        # TODO add address bound flag
+        # add address bound flag
         # An address can only be bound once. Because we need to bind the address
         # in a place that will be called more than once, we can add a flag here
         # that gets switched once the address has been bound.
@@ -89,19 +91,33 @@ class Subscriber:
 
         self.message_sub.setsockopt_string(zmq.SUBSCRIBE, topic)
 
-        # TODO socket listening for new publishers should also subscribe to the topic
+        # socket listening for new publishers should also subscribe to the topic
         # This allows it to only receive notifications about publishers it wants to
         # connect to
+        self.publisher_sub.setsockopt_string(zmq.SUBSCRIBE, topic)
 
         broker_type = self.registration.recv_string()
 
-        # TODO process response from registration
+        # process response from registration
         # If broker is ROUTING we need to the socket accepting messages to be bound
         # to this subscriber's address
         # If broker is DIRECT we need to connect the socket accepting messages to
         # each address received. Additionally, if we are using the DIRECT broker
         # we need to be able to receive notifications about new publishers so
         # we need to connect the appropriate socket to this subscriber's address
+        if broker_type == BrokerType.ROUTE:
+            if not self.is_address_bound:
+                self.message_sub.bind(self.address)
+                self.is_address_bound = True
+        elif broker_type == BrokerType.DIRECT:
+            if not self.is_address_bound:
+                self.publisher_sub.bind(self.address)
+                self.is_address_bound = True
+            length = self.registration.recv_string()
+            if length != "0":
+                addresses = self.registration.recv_multipart()
+                for address in addresses:
+                    self.message_sub.connect(address.decode('utf-8'))
 
         logging.info(f"Connected to {broker_type} broker")
 
@@ -119,8 +135,8 @@ class Subscriber:
         self.topics.remove(topic)
         self.message_sub.setsockopt_string(zmq.UNSUBSCRIBE, topic)
 
-        # TODO unsubscribe registration socket
-
+        # unsubscribe registration socket
+        self.publisher_sub.setsockopt_string(zmq.UNSUBSCRIBE, topic)
         # For now, we won't worry about unbinding the address on the broker
         # There could be other subscribers listening to that topic. Because
         # we've disconnected the address and unsubscribed from the topic here,
@@ -167,8 +183,10 @@ class Subscriber:
         Blocks until a registration has been received and then connects the
         subscriber so that it can begin receiving messages on that address
         """
-        # TODO receive notification of new publisher
+        # receive notification of new publisher
+        message = self.publisher_sub.recv_multipart()
+        address = message[1].decode('utf-8')
 
-        # TODO connect message receiving socket to new publisher address
+        # connect message receiving socket to new publisher address
+        self.message_sub.connect(address)
 
-        pass

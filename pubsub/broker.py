@@ -137,7 +137,7 @@ class DirectBroker(AbstractBroker):
         self.registry[topic].append(encoded_address)
         # TODO publish topic and address of new publisher to subscribers
         self.message_out.send_string(topic, flags=zmq.SNDMORE)
-        self.message_out.send_string(encoded_address)
+        self.message_out.send_string(address)
         # TODO Send broker type reply
         self.registration.send_string(BrokerType.DIRECT)
 
@@ -147,9 +147,8 @@ class DirectBroker(AbstractBroker):
         self.message_out.connect(address)
         # TODO send multipart message with broker type, number of addresses
         # being sent, and a list of addresses
+        message = [BrokerType.DIRECT.encode('utf-8'), str(len(self.registry[topic])).encode('utf-8')]
         if self.registry[topic]:
-            self.message_out.send_string(BrokerType.DIRECT, flags=zmq.SNDMORE)
-            self.message_out.send_string(str(len(self.registry[topic])), flags=zmq.SNDMORE)
-            self.message_out.send_string(self.registry[topic])
-        else:
-            self.message_out.send_string(BrokerType.DIRECT)
+            message += self.registry[topic]
+        self.registration.send_multipart(message)
+
