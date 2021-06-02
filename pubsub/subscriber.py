@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from time import sleep
 
 import zmq
 import pubsub
@@ -28,14 +29,17 @@ class Subscriber:
     """
     ctx = zmq.Context()
 
-    def __init__(self, address, registration_address):
+    def __init__(self, address, registration_address, conn_sec=.5):
         """Creates a subscriber instance
 
         :param address: the address of this subscriber. String with
         format <scheme>://<ip_addr>:<port>
         :param registration_address: address of the broker with which this publisher
         registers topics. String with format <scheme>://<ip_addr>:<port>
+        :param conn_sec: the number of seconds it takes this subscriber to
+        connect to a publisher when using a direct broker. Optional. Default is .5 seconds
         """
+        self.conn_sec = conn_sec
         self.address = address
         self.is_address_bound = False
         self.topics = []
@@ -113,8 +117,18 @@ class Subscriber:
             if not self.is_address_bound:
                 self.publisher_sub.bind(self.address)
                 self.is_address_bound = True
-            length = self.registration.recv_string()
-            if length != "0":
+
+            # Ensure that publisher_sub is receiving new publishers
+            # before we get the list of existing publishers otherwise
+            # we could miss a publisher registration
+            sleep(self.conn_sec)
+
+            self.registration.send_string(pubsub.REQ_PUB, flags=zmq.SNDMORE)
+            self.registration.send_string(topic, flags=zmq.SNDMORE)
+            self.registration.send_string(self.address)
+
+            has_addresses = self.registration.recv()
+            if has_addresses == b'\x01':
                 addresses = self.registration.recv_multipart()
                 for address in addresses:
                     self.message_sub.connect(address.decode('utf-8'))

@@ -8,3 +8,4 @@ logging.basicConfig(filename="pubsub.log",
 
 REG_PUB = "REGISTER_PUBLISHER"
 REG_SUB = "REGISTER_SUBSCRIBER"
+REQ_PUB = "REQUEST_PUBLISHERS"
