@@ -12,6 +12,34 @@ All message passing goes through routing broker.
 
 Direct broker holds registry to all publishers to send messages directly to subscriber.
 
+### FILE DESCRIPTORS
+
+* folder - cs6381-assignment1
+  * folder - pubsub
+    * __inin__.py - 
+    * broker.py - 
+    * publisher.py -
+    * util.py - internal helper file
+  * folder - tests
+    * test_direct_broker.py - units tests
+    * test_publisher.py - units tests
+    * test_routing_broker.py - units tests
+    * test_subscriber.py - units tests
+  * create_pub_sub.py - 
+  * psserver.py - CLI to start direct or routing broker
+
+### COMMAND LINE INTERFACE USAGE
+#### API USAGE
+* psserver.py - start broker type: Example parameters (--t r --a 127.0.0.1 --p 5555)
+  * --t : d = Direct Broker r = Routing Broker
+  * --a : IP Address
+  * --p : Port number
+
+* create_pub_sub.py - utility to start sample publishers/subscribers
+
+#### UNIT TESTING
+* pytest /tests
+
 
 ### PUBLISHER
 ```
