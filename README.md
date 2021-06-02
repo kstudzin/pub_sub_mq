@@ -4,25 +4,38 @@
 
 ### BROKER CONFIGURATION
 
-* PUBLISHER -> SUBSCRIBER
+* PUBLISHER -> ROUTINGBROKER -> SUBSCRIBER
+All message passing goes through routing broker.
 
-* PUBLISHER -> BROKER -> SUBSCRIBER
+* PUBLISHER -> DIRECTBROKER -> SUBSCRIBER
+Direct broker holds registry to all publisher to send messages directly to subscriber.
 
 
 ### PUBLISHER
 ```
-register_pub (topic = <some string>, <some identification of the publisher>)
+Publisher(address = <address of this publisher>, registration_address = <address of the broker>)
+
+register(topic = <string>)
   
-publish (topic = <string>, value = <val>)
+publish(topic = <string>, message = <string>, message_type = <default = MessageType.STRING>)
+MessageType = [STRING, PYOBJ, JSON]
 ```
 
 ### SUBSCRIBER
 ```
-register_sub (topic = <some string>, <some identification of the subscriber>)
+Subscriber(address = <address of this subscriber>, registration_address = <address of the broker>)
+
+register(topic = <string>)
   
-unregister_sub (topic = <some string>, <some identification of the subscriber>)
+unregister(topic = <string>)
   
-notify (topic = <string>, value = <val>)
+notify(topic = <string>, message = <string>)
+
+register_callback(callback = Function or method to be called when a message is received)
+
+wait_for_msg()
+
+wait_for_registration()
 ```
   
 ### TESTING
