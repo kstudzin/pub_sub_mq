@@ -5,6 +5,7 @@ import pytest
 import zmq
 
 from pubsub import REG_SUB
+from pubsub.broker import BrokerType
 from pubsub.subscriber import Subscriber
 from pubsub.util import MessageType
 
@@ -28,7 +29,7 @@ def broker_recv_reg(socket):
     reg_type = socket.recv_string()
     topic = socket.recv_string()
     address = socket.recv_string()
-    socket.send_string("TEST_BROKER")
+    socket.send_string(BrokerType.ROUTE)
     return reg_type, topic, address
 
 
