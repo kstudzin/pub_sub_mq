@@ -74,7 +74,7 @@ class Subscriber:
                               MessageType.PYOBJ: self.message_sub.recv_pyobj,
                               MessageType.JSON: self.message_sub.recv_json}
 
-        logging.info(f"Registering with broker at {registration_address}.")
+        logging.info(f"Bound to {address}. Registering with broker at {registration_address}.")
 
     def register(self, topic):
         """ Registers a topic and address with the broker
