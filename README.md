@@ -5,10 +5,12 @@
 ### BROKER CONFIGURATION
 
 * PUBLISHER -> ROUTINGBROKER -> SUBSCRIBER
+
 All message passing goes through routing broker.
 
 * PUBLISHER -> DIRECTBROKER -> SUBSCRIBER
-Direct broker holds registry to all publisher to send messages directly to subscriber.
+
+Direct broker holds registry to all publishers to send messages directly to subscriber.
 
 
 ### PUBLISHER
@@ -40,7 +42,86 @@ wait_for_registration()
   
 ### TESTING
   
-* Latency analysis
-  
-* Plotted graphs
+#### LATENCY ANALYSIS
+
+<table align="center">
+  <tr>
+    <td align="center" colspan="10">ROUTING BROKER</td>
+  </tr>
+  <tr>
+    <td></td><td align="center" colspan="9">Publishers</td>
+  </tr>
+  <tr align="center">
+    <td>Subscribers</td><td>1</td><td>5</td><td>10</td><td>20</td><td>50</td><td>100</td><td>200</td><td>500</td><td>1000</td>
+  </tr>
+  <tr align="center">
+    <td align="right">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">5</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">10</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">20</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">50</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">100</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">200</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">500</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">1000</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+</table>
+
+<table align="center">
+  <tr>
+    <td align="center" colspan="10">DIRECT BROKER</td>
+  </tr>
+  <tr>
+    <td></td><td align="center" colspan="9">Publishers</td>
+  </tr>
+  <tr align="center">
+    <td>Subscribers</td><td>1</td><td>5</td><td>10</td><td>20</td><td>50</td><td>100</td><td>200</td><td>500</td><td>1000</td>
+  </tr>
+  <tr align="center">
+    <td align="right">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">5</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">10</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">20</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">50</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">100</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">200</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">500</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">1000</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+</table>
+
+
+#### Plotted graphs
   
