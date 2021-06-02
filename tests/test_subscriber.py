@@ -24,14 +24,6 @@ def test_constructor():
     assert len(subscriber.topics) == 0
 
 
-@pytest.fixture()
-def broker_rep():
-    reply = ctx.socket(zmq.REP)
-    reply.bind(broker_address)
-    result = executor.submit(broker_recv_reg, reply)
-    return result
-
-
 def broker_recv_reg(socket):
     reg_type = socket.recv_string()
     topic = socket.recv_string()
@@ -40,15 +32,21 @@ def broker_recv_reg(socket):
     return reg_type, topic, address
 
 
-def test_register(broker_rep):
+def test_register():
+    reply = ctx.socket(zmq.REP)
+    reply.bind(broker_address)
+    future = executor.submit(broker_recv_reg, reply)
+
     topic = "the topic name"
     subscriber = Subscriber(sub_address, broker_address)
     subscriber.register(topic)
 
-    result = broker_rep.result(60)
+    result = future.result(60)
     assert result[0] == REG_SUB
     assert result[1] == topic
     assert result[2] == sub_address
+
+    reply.unbind(broker_address)
 
 
 notifications = []
@@ -58,20 +56,20 @@ def callback(topic, message):
     notifications.append(Notification(topic, message))
 
 
-@pytest.fixture()
-def subscription_wait():
+def test_receive_message():
+    reply = ctx.socket(zmq.REP)
+    reply.bind(broker_address)
+    reg_future = executor.submit(broker_recv_reg, reply)
+
     subscriber = Subscriber(sub_address, broker_address)
     subscriber.register("the topic name")
     subscriber.register_callback(callback)
-    result = executor.submit(subscriber.wait_for_msg)
-    return result
+    notify_future = executor.submit(subscriber.wait_for_msg)
 
-
-def test_receive_message(broker_rep, subscription_wait):
     topic = "the topic name"
     message = "the message here"
 
-    result = broker_rep.result(60)
+    result = reg_future.result(60)
     assert result[0] == REG_SUB
     assert result[1] == topic
     assert result[2] == sub_address
@@ -84,9 +82,13 @@ def test_receive_message(broker_rep, subscription_wait):
     pub.send_string(MessageType.STRING, flags=zmq.SNDMORE)
     pub.send_string(message)
 
-    subscription_wait.result(60)
+    notify_future.result(60)
 
     assert len(notifications) == 1
+    assert notifications[0].topic == topic
+    assert notifications[0].message == message
+
+    reply.unbind(broker_address)
 
 
 class Notification:

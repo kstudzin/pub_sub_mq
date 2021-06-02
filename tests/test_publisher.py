@@ -24,14 +24,6 @@ def test_constructor():
     assert publisher.registration is not None
 
 
-@pytest.fixture()
-def broker_rep():
-    reply = ctx.socket(zmq.REP)
-    reply.bind(broker_address)
-    result = executor.submit(broker_recv_reg, reply)
-    return result
-
-
 def broker_recv_reg(socket):
     reg_type = socket.recv_string()
     topic = socket.recv_string()
@@ -40,16 +32,23 @@ def broker_recv_reg(socket):
     return reg_type, topic, address
 
 
-def test_register(broker_rep):
+def test_register():
     logging.debug("running test")
+
+    reply = ctx.socket(zmq.REP)
+    reply.bind(broker_address)
+    future = executor.submit(broker_recv_reg, reply)
+
     topic = "the topic name"
     publisher = Publisher(pub_address, broker_address)
     publisher.register(topic)
 
-    result = broker_rep.result(60)
+    result = future.result(60)
     assert result[0] == REG_PUB
     assert result[1] == topic
     assert result[2] == pub_address
+
+    reply.unbind(broker_address)
 
 
 @pytest.fixture()
