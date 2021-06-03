@@ -14,6 +14,7 @@ BROKER_ADDRESS = "tcp://127.0.0.1:5559"
 SUB_ADDRESS = "tcp://127.0.0.1:5560"
 PUB_ADDRESS = "tcp://127.0.0.1:5561"
 TOPIC = "topic here"
+ENCODING = "utf-8"
 executor = ThreadPoolExecutor(max_workers=2)
 
 
@@ -47,9 +48,7 @@ class TestDirectBroker:
 
     def wait_for_registration(self, socket):
         message = socket.recv_multipart()
-        count = message[1].decode('utf-8')
-        address = message[2].decode('utf-8')
-        return count, address
+        return message
 
     def test_process_pub_registration(self, publisher):
         logging.info("Simulate registering publisher with broker")
@@ -85,16 +84,20 @@ class TestDirectBroker:
         req.send_string(TOPIC, flags=zmq.SNDMORE)
         req.send_string(SUB_ADDRESS)
 
-        broker_type = req.recv_string()
+        message = req.recv_multipart()
+        assert len(message) == 2
+        broker_type = message[0].decode(ENCODING)
         assert broker_type == BrokerType.DIRECT
+        addresses = message[1].decode(ENCODING)
+        assert addresses == "0"
 
         subscriber.setsockopt_string(zmq.SUBSCRIBE, TOPIC)
-        future = executor.submit(self.wait_for_registration, broker.message_out)
+        future = executor.submit(self.wait_for_registration, subscriber)
 
-        message = [BrokerType.DIRECT.encode('utf-8'),
-                   str(len(broker.registry[TOPIC])).encode('utf-8')]
-        if broker.registry[TOPIC]:
-            message += broker.registry[TOPIC]
+        sleep(0.5)
+
+        message = [BrokerType.DIRECT.encode(ENCODING),
+                   str(len(broker.registry[TOPIC])).encode(ENCODING)]
         broker.message_out.send_multipart(message)
 
         count, address = future.result(60)
