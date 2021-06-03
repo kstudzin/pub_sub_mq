@@ -134,30 +134,36 @@ class RoutingBroker(AbstractBroker):
 class DirectBroker(AbstractBroker):
 
     def __init__(self, registration_address):
-        # TODO call super class constructor
+        # call super class constructor
         super().__init__(registration_address)
-        # TODO add data structure that maps a topic to a list of
+
+        # add data structure that maps a topic to a list of
         # publisher addresses publishing on that topic
         self.registry = defaultdict(list)
-        # TODO add socket that can publish newly registered publishers
+
+        # add socket that can publish newly registered publishers
         # to registered subscribers
         self.message_out = self.context.socket(zmq.PUB)
+        logging.info(f"Created direct broker at {registration_address}")
 
     def process_pub_registration(self, topic, address):
-        # TODO add publisher to map of topics to addresses
+        # add publisher to map of topics to addresses
         encoded_address = address.encode('utf-8')
         self.registry[topic].append(encoded_address)
-        # TODO publish topic and address of new publisher to subscribers
+
+        # publish topic and address of new publisher to subscribers
         self.message_out.send_string(topic, flags=zmq.SNDMORE)
         self.message_out.send_string(address)
-        # TODO Send broker type reply
+
+        # Send broker type reply
         self.registration.send_string(BrokerType.DIRECT)
 
     def process_sub_registration(self, topic, address):
-        # TODO connect subscriber address to socket that publishes new
+        # connect subscriber address to socket that publishes new
         # publisher connection information
         self.message_out.connect(address)
-        # TODO send multipart message with broker type, number of addresses
+
+        # send multipart message with broker type, number of addresses
         # being sent, and a list of addresses
         self.registration.send_string(BrokerType.DIRECT)
 
