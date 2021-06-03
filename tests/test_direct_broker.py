@@ -66,11 +66,7 @@ class TestDirectBroker:
 
         broker_type = req.recv_string()
         assert broker_type == BrokerType.DIRECT
-        assert PUB_ADDRESS.encode('utf-8') in broker.registry[TOPIC]
-
-        # TODO publish topic and address of new publisher to subscribers
-        # self.message_out.send_string(topic, flags=zmq.SNDMORE)
-        # self.message_out.send_string(address)
+        assert PUB_ADDRESS.encode(ENCODING) in broker.registry[TOPIC]
 
     def test_process_sub_registration(self, subscriber):
         logging.info("Simulate registering subscriber with broker")
@@ -108,56 +104,3 @@ class TestDirectBroker:
         assert address == PUB_ADDRESS
 
         subscriber.setsockopt_string(zmq.UNSUBSCRIBE, TOPIC)
-
-    def test_process_message(self, publisher, subscriber):
-        broker = DirectBroker(BROKER_ADDRESS)
-        req = ctx.socket(zmq.REQ)
-        req.connect(BROKER_ADDRESS)
-
-        logging.info("Register publisher")
-        executor.submit(broker.process_registration)
-
-        req.send_string(REG_PUB, flags=zmq.SNDMORE)
-        req.send_string(TOPIC, flags=zmq.SNDMORE)
-        req.send_string(PUB_ADDRESS)
-
-        broker_type = req.recv_string()
-        assert broker_type == BrokerType.DIRECT
-
-        logging.info("Register subscriber")
-        executor.submit(broker.process_registration)
-
-        req.send_string(REG_SUB, flags=zmq.SNDMORE)
-        req.send_string(TOPIC, flags=zmq.SNDMORE)
-        req.send_string(SUB_ADDRESS)
-
-        broker_type = req.recv_string()
-        assert broker_type == BrokerType.DIRECT
-        addresses = broker.registry[TOPIC]
-
-        subscriber.setsockopt_string(zmq.SUBSCRIBE, TOPIC)
-        future = executor.submit(self.wait_for_registration, subscriber)
-
-        sleep(0.5)
-
-        broker.message_out.send_string(TOPIC, flags=zmq.SNDMORE)
-        broker.message_out.send_multipart(addresses)
-
-        result = future.result(60)
-        assert len(result) == 2
-        topic = result[0].decode(ENCODING)
-        address = result[1].decode(ENCODING)
-        assert topic == TOPIC
-        assert address == PUB_ADDRESS
-
-        # TODO send message from pub to sub
-        msg_future = executor.submit(self.wait_for_msg, subscriber)
-
-        sleep(.5)
-        publisher.send_string(topic, flags=zmq.SNDMORE)
-        publisher.send_string(MESSAGE)
-
-        logging.info("Wait for message")
-        result = msg_future.result(60)
-        assert result[0].decode(ENCODING) == TOPIC
-        assert result[1].decode(ENCODING) == MESSAGE
