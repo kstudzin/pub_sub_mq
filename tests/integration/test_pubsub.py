@@ -138,7 +138,6 @@ def test_publish_first_direct():
     logging.info("setting up subscriber")
     sub = Subscriber(sub_address, "tcp://127.0.0.1:5565")
     future = executor.submit(wait_loop, sub.wait_for_msg, num_msg)
-    executor.submit(wait_loop, sub.wait_for_registration, 1)
 
     sub.register_callback(add_number)
     sub.register(topic)
