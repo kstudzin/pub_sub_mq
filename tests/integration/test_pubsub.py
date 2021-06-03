@@ -21,7 +21,7 @@ def wait_loop(func, max_iters=0):
         func()
         iters += 1
 
-    logging.debug(f"Exiting")
+    logging.debug(f"Exiting wait loop")
 
 
 nl = []
@@ -91,6 +91,44 @@ def test_publish_direct():
     assert nl == numbers
 
 
+def test_two_publishers():
+    topic = "numbers"
+    topic2 = "other numbers"
+    num_msg = 100
+    nl.clear()
+
+    broker = RoutingBroker("tcp://127.0.0.1:5570")
+    executor.submit(wait_loop, broker.process, num_msg * 2)
+    executor.submit(wait_loop, broker.process_registration, 4)
+
+    logging.info("setting up subscriber")
+    sub = Subscriber("tcp://127.0.0.1:5571", "tcp://127.0.0.1:5570")
+    future = executor.submit(wait_loop, sub.wait_for_msg, num_msg * 2)
+
+    sub.register_callback(add_number)
+    sub.register(topic)
+    sub.register(topic2)
+
+    logging.info("setting up publisher")
+    pub1 = Publisher("tcp://127.0.0.1:5572", "tcp://127.0.0.1:5570")
+    pub1.register(topic)
+
+    pub2 = Publisher("tcp://127.0.0.1:5573", "tcp://127.0.0.1:5570")
+    pub2.register(topic2)
+
+    sleep(.5)
+    numbers = []
+    for i in range(num_msg):
+        pub1.publish(topic, f"pub1 {i}")
+        pub2.publish(topic2, f"pub2 {i}")
+        numbers.append(f"pub1 {i}")
+        numbers.append(f"pub2 {i}")
+
+    future.result(60)
+    logging.info(f"nl: {nl}")
+    logging.info(f"nu: {numbers}")
+    assert len(nl) == len(numbers)
+
+
 def add_number(topic, message):
-    if topic == "numbers":
-        nl.append(message)
+    nl.append(message)
