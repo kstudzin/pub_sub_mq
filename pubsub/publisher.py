@@ -38,7 +38,7 @@ class Publisher:
                             MessageType.PYOBJ: self.message_pub.send_pyobj,
                             MessageType.JSON: self.message_pub.send_json}
 
-        logging.info(f"Registering with broker at {registration_address}.")
+        logging.info(f"Bound to {address}. Registering with broker at {registration_address}.")
 
     def register(self, topic):
         """ Register a topic and address with the broker

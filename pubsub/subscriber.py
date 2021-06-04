@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from time import sleep
 
 import zmq
 import pubsub
@@ -28,16 +29,18 @@ class Subscriber:
     """
     ctx = zmq.Context()
 
-    def __init__(self, address, registration_address):
+    def __init__(self, address, registration_address, conn_sec=.5):
         """Creates a subscriber instance
 
         :param address: the address of this subscriber. String with
         format <scheme>://<ip_addr>:<port>
         :param registration_address: address of the broker with which this publisher
         registers topics. String with format <scheme>://<ip_addr>:<port>
+        :param conn_sec: the number of seconds it takes this subscriber to
+        connect to a publisher when using a direct broker. Optional. Default is .5 seconds
         """
+        self.conn_sec = conn_sec
         self.address = address
-        self.is_address_bound = False
         self.topics = []
         self.callback = printing_callback
 
@@ -51,6 +54,15 @@ class Subscriber:
         # This socket will only be used with the DIRECT router. When it is
         # used it will be be bound to this subscribers address
         self.publisher_sub = self.ctx.socket(zmq.SUB)
+
+        # Bind the address here to force the construction to fail if the address
+        # is already bound. However if the broker is a ROUTING broker, we will need
+        # to bind to the message subscriber. In that case, we will unbind this socket
+        # and bind to the other once we know which subscriber we are using (in the
+        # register method. To make sure that we only make that switch once, we use
+        # the message_sub_bound flag
+        self.publisher_sub.bind(self.address)
+        self.message_sub_bound = False
 
         # move this bind
         # Because either this socket or the publisher registration notification
@@ -70,7 +82,7 @@ class Subscriber:
                               MessageType.PYOBJ: self.message_sub.recv_pyobj,
                               MessageType.JSON: self.message_sub.recv_json}
 
-        logging.info(f"Registering with broker at {registration_address}.")
+        logging.info(f"Bound to {address}. Registering with broker at {registration_address}.")
 
     def register(self, topic):
         """ Registers a topic and address with the broker
@@ -106,15 +118,23 @@ class Subscriber:
         # we need to be able to receive notifications about new publishers so
         # we need to connect the appropriate socket to this subscriber's address
         if broker_type == BrokerType.ROUTE:
-            if not self.is_address_bound:
+            if not self.message_sub_bound:
+                self.publisher_sub.unbind(self.address)
                 self.message_sub.bind(self.address)
-                self.is_address_bound = True
+                self.message_sub_bound = True
         elif broker_type == BrokerType.DIRECT:
-            if not self.is_address_bound:
-                self.publisher_sub.bind(self.address)
-                self.is_address_bound = True
-            length = self.registration.recv_string()
-            if length != "0":
+
+            # Ensure that publisher_sub is receiving new publishers
+            # before we get the list of existing publishers otherwise
+            # we could miss a publisher registration
+            sleep(self.conn_sec)
+
+            self.registration.send_string(pubsub.REQ_PUB, flags=zmq.SNDMORE)
+            self.registration.send_string(topic, flags=zmq.SNDMORE)
+            self.registration.send_string(self.address)
+
+            has_addresses = self.registration.recv()
+            if has_addresses == b'\x01':
                 addresses = self.registration.recv_multipart()
                 for address in addresses:
                     self.message_sub.connect(address.decode('utf-8'))
