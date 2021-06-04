@@ -27,7 +27,6 @@ class AbstractBroker(ABC):
 
         self.connect_address = registration_address
         self.registration.bind(registration_address)
-        sleep(self.conn_sec)
 
     def process_registration(self):
         """ Process registration messages
@@ -52,6 +51,7 @@ class AbstractBroker(ABC):
         if reg_type == pubsub.REG_PUB:
             self.process_pub_registration(topic, address)
         elif reg_type == pubsub.REG_SUB:
+            sleep(self.conn_sec)
             self.process_sub_registration(topic, address)
         else:
             logging.warning(f"Received registration message with unknown type: {reg_type}")
@@ -160,7 +160,7 @@ class DirectBroker(AbstractBroker):
         # send multipart message with broker type, number of addresses
         # being sent, and a list of addresses
         self.registration.send_string(BrokerType.DIRECT, zmq.SNDMORE)
-        self.registration.send_string(len(self.registry[topic]), zmq.SNDMORE)
+        self.registration.send_string(str(len(self.registry[topic])), zmq.SNDMORE)
         has_addresses = b'\x00' if len(self.registry[topic]) == 0 else b'\x01'
         messages = [has_addresses] + self.registry[topic]
 

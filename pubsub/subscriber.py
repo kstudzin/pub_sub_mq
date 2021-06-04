@@ -63,6 +63,7 @@ class Subscriber:
         # the message_sub_bound flag
         self.publisher_sub.bind(self.address)
         self.message_sub_bound = False
+        self.publisher_sub_bound = False
 
         # move this bind
         # Because either this socket or the publisher registration notification
@@ -127,12 +128,11 @@ class Subscriber:
             # Ensure that publisher_sub is receiving new publishers
             # before we get the list of existing publishers otherwise
             # we could miss a publisher registration
-            sleep(self.conn_sec)
+            if not self.publisher_sub_bound:
+                sleep(self.conn_sec)
+                self.publisher_sub_bound = True
 
-            self.registration.send_string(pubsub.REG_SUB, flags=zmq.SNDMORE)
-            self.registration.send_string(topic, flags=zmq.SNDMORE)
-            self.registration.send_string(self.address)
-
+            num_addresses = self.registration.recv()
             has_addresses = self.registration.recv()
             if has_addresses == b'\x01':
                 addresses = self.registration.recv_multipart()
