@@ -63,7 +63,7 @@ class Subscriber:
         # the message_sub_bound flag
         self.publisher_sub.bind(self.address)
         self.message_sub_bound = False
-        self.publisher_sub_bound = False
+        self.publisher_sub_ready = False
 
         # move this bind
         # Because either this socket or the publisher registration notification
@@ -128,11 +128,10 @@ class Subscriber:
             # Ensure that publisher_sub is receiving new publishers
             # before we get the list of existing publishers otherwise
             # we could miss a publisher registration
-            if not self.publisher_sub_bound:
+            if not self.publisher_sub_ready:
                 sleep(self.conn_sec)
-                self.publisher_sub_bound = True
+                self.publisher_sub_ready = True
 
-            num_addresses = self.registration.recv()
             has_addresses = self.registration.recv()
             if has_addresses == b'\x01':
                 addresses = self.registration.recv_multipart()

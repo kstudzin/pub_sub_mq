@@ -160,7 +160,6 @@ class DirectBroker(AbstractBroker):
         # send multipart message with broker type, number of addresses
         # being sent, and a list of addresses
         self.registration.send_string(BrokerType.DIRECT, zmq.SNDMORE)
-        self.registration.send_string(str(len(self.registry[topic])), zmq.SNDMORE)
         has_addresses = b'\x00' if len(self.registry[topic]) == 0 else b'\x01'
         messages = [has_addresses] + self.registry[topic]
 
