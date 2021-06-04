@@ -86,28 +86,31 @@ wait_for_registration()
     <td align="right">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">5</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">10</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">20</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">8</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">50</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">16</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">100</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">32</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">200</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">64</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">500</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">128</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">1000</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">256</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+   <tr align="center">
+    <td align="right">512</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
 </table>
 
@@ -125,31 +128,74 @@ wait_for_registration()
     <td align="right">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">5</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">10</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">20</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">8</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">50</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">16</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">100</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">32</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">200</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">64</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">500</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">128</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">1000</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">256</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  </tr>
+  <tr align="center">
+    <td align="right">512</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
 </table>
 
+### REQUIREMENTS
+Mandatory: 
+
+* Use a SingleSwitchTopo with one host per participant in your system (e.g. one host per subscriber, one host per publisher, and one host for the broker). 
+
+* Start a broker system in either direct or proxy mode
+  * Create a single topic and publish at least 1,000 messages on that topic. Record the time each message arrives on a subscriber
+  * At end of test run, take every latency measurement you have seen so far and calculate the first quartile, the median and the third quartile. This tuple of (mode, count(subs), Q1, median, Q3) is the result of a single test run. If you don't know how to calculate quartiles look it up :-) 
+  * Repeat this entire process with 2,4,8,16 subscribers for both direct and proxy mode. You should have 8 tuples (a.k.a 8 rows) when you are done
+  * Generate a line graph (INCLUDE AXIS LABELS!!) showing at least the median latency versus the number of subscribers. If your graphing tool supports it, generate a boxplot graph so we can see latency vs subscribers, where latency is drawn as a boxplot instead of a single number. If you need to generate one graph for direct mode and one graph for proxy mode that is OK, but it is preferred to put both lines (or both sets of boxplots) onto one graph next to each other
+
+* Document what your tests show.
+  * Does the typical time to deliver a message increase as the number of subscribers increases?
+  * How significant is this effect? Does your system become less predictable as the number of subscribers increases (e.g. as count(subs) goes up, do you see the Q1 to Q3 recordings get farther apart?)? 
+  * Do you expect higher latency in subscriber mode vs publisher mode. Peek inside your exact latency measurements - do you see that the first few (or first single) latency measurements are always quite a bit higher than then next ones?
+  * Can you explain this?
+
+
+
+Bonus: 
+
+* Use boxplots in your graphs
+
+* Come up with a way to scale the above system to much more significant numbers, and expand the test to 32,64,128,256,512
+
+* Add in a 'warm up' that sends a few hundred messages before it starts recording latency. Be sure you don't pause the system after the warmup is done, you need to keep it running but hot switch into a recording mode
+
+* In addition to quartile 4, record the maximum value and add that to your boxplot
+
+* Recreate the graphs
+
+* Expand your explanatory documentation. See if you observe completely different behavior "to the right of" 16 subscribers, and explain what this means for "reading system results". Did you keep the same basic conclusions about system scalability, or did you learn something new?
+  * Does variabilty in message deliver latency scale in an acceptable manner, or does performance degrade so rapidly as the number of subscribers increases that the system is useless at larger numbers?
+  * Consider your system resources - was network or cpu or memory the most scarce resource during your test?
+  * Were you able to run 512 without taxing your local system, or are the results at 512 likely invalid because your host computer was out of resources?
+  * What new information did you learn by looking at the maximum values of the latencies?
+  * For either mode of your system, could you confidently declare an upper limit on message delivery?
+  * If yes, explain that. If no, what would you need to do to guarantee an upper time limit on "event delivered or thrown away"
+
+* Rerun the test with 4 subscribers, but edit your mininet links manually. Use the `delay='Xms'` option on addLink to make a single link very slow. Play with this scenario. Does the single slow subscriber cause the non-slow subsribers to starve? Is the publisher slowed down? 
 
 #### Plotted graphs
   
