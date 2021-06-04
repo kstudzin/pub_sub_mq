@@ -20,38 +20,54 @@ class Topics:
 
 
 class DataImport:
-    def __init__(self, sample_size="short"):
+    def __init__(self, sample_size="short", suffix="1"):
         """
         Finds directory base upon sample size
         :param sample_size: short, medium, long
+        :param suffix: sample file name index number sample is 1-5
         """
         project_directory = Path(__file__).parent
         self.data_directory = os.path.join(project_directory, f"sampledata/{sample_size}/")
         self.sample_data = []
+        self.__build_data(suffix)
 
-    def get_data(self, suffix="1") -> []:
+    def __build_data(self, suffix):
         """
         :param suffix: sample file name index number sample is 1-5
         :return: list of dictionaries created from CSV
         """
         for file in os.scandir(self.data_directory):
             if fnmatch.fnmatch(file, f'*{suffix}.csv') and file.is_file():
-                print(file.path)
+                # print(file.path)
                 with open(file.path, 'r') as data:
                     for line in csv.DictReader(data):
                         self.sample_data.append(line)
-        return self.sample_data
+
+    def get_all_topics(self) -> []:
+        """
+        Get all topics provided in file.
+        :return: List of all topics in provided in dictionary
+        """
+        row = self.sample_data[0]
+        return list(row.keys())
+
+    def get_random_topic_message(self) -> ():
+        """
+        Get a random message from list of dictionaries ingested from csv file.
+        :return: Tuple with random topic and message
+        """
+        row = self.sample_data[random.randrange(0, len(self.sample_data))]
+        all_topics = list(row.keys())
+        topic = all_topics[random.randrange(0, len(all_topics))]
+        message = row[topic]
+        return topic, message
 
 
 def main():
-    data_import = DataImport("short")
-    data = data_import.get_data("2")
-    print(data)
-    row = data[random.randrange(0, len(data))]
-    keys = list(row.keys())
-    key = keys[random.randrange(0, len(keys))]
-    value = row[key]
-    print(f"{key}: {value}")
+    data_import = DataImport("long", "2")
+    print(data_import.get_all_topics())
+    topic, message = data_import.get_random_topic_message()
+    print(f"{topic}: {message}")
 
 
 if __name__ == "__main__":
