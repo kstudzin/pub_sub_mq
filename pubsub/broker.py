@@ -1,6 +1,7 @@
 import logging
 from abc import abstractmethod, ABC
 from collections import defaultdict
+from time import sleep
 
 import zmq
 import pubsub
@@ -20,11 +21,13 @@ class AbstractBroker(ABC):
     """
     context = zmq.Context()
 
-    def __init__(self, registration_address):
+    def __init__(self, registration_address, conn_sec=.5):
+        self.conn_sec = conn_sec
         self.registration = self.context.socket(zmq.REP)
 
         self.connect_address = registration_address
         self.registration.bind(registration_address)
+        sleep(self.conn_sec)
 
     def process_registration(self):
         """ Process registration messages
@@ -50,8 +53,6 @@ class AbstractBroker(ABC):
             self.process_pub_registration(topic, address)
         elif reg_type == pubsub.REG_SUB:
             self.process_sub_registration(topic, address)
-        elif reg_type == pubsub.REQ_PUB:
-            self.process_publisher_request(topic)
         else:
             logging.warning(f"Received registration message with unknown type: {reg_type}")
 
@@ -61,10 +62,6 @@ class AbstractBroker(ABC):
 
     @abstractmethod
     def process_sub_registration(self, topic, address):
-        pass
-
-    @abstractmethod
-    def process_publisher_request(self, topic):
         pass
 
 
@@ -127,9 +124,6 @@ class RoutingBroker(AbstractBroker):
         self.registration.send_string(BrokerType.ROUTE)
         logging.debug(f"Connected to subscriber at \"{address}\"")
 
-    def process_publisher_request(self, topic):
-        pass
-
 
 class DirectBroker(AbstractBroker):
 
@@ -165,9 +159,8 @@ class DirectBroker(AbstractBroker):
 
         # send multipart message with broker type, number of addresses
         # being sent, and a list of addresses
-        self.registration.send_string(BrokerType.DIRECT)
-
-    def process_publisher_request(self, topic):
+        self.registration.send_string(BrokerType.DIRECT, zmq.SNDMORE)
+        self.registration.send_string(len(self.registry[topic]), zmq.SNDMORE)
         has_addresses = b'\x00' if len(self.registry[topic]) == 0 else b'\x01'
         messages = [has_addresses] + self.registry[topic]
 

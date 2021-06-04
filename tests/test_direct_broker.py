@@ -6,7 +6,7 @@ from time import sleep
 import pytest
 import zmq
 
-from pubsub import REG_PUB, REG_SUB, REQ_PUB
+from pubsub import REG_PUB, REG_SUB
 from pubsub.broker import DirectBroker, BrokerType
 
 ctx = zmq.Context()

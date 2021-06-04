@@ -129,7 +129,7 @@ class Subscriber:
             # we could miss a publisher registration
             sleep(self.conn_sec)
 
-            self.registration.send_string(pubsub.REQ_PUB, flags=zmq.SNDMORE)
+            self.registration.send_string(pubsub.REG_SUB, flags=zmq.SNDMORE)
             self.registration.send_string(topic, flags=zmq.SNDMORE)
             self.registration.send_string(self.address)
 
