@@ -170,4 +170,5 @@ class DirectBroker(AbstractBroker):
     def process_publisher_request(self, topic):
         has_addresses = b'\x00' if len(self.registry[topic]) == 0 else b'\x01'
         messages = [has_addresses] + self.registry[topic]
+
         self.registration.send_multipart(messages)

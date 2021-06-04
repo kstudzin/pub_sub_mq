@@ -41,7 +41,6 @@ class Subscriber:
         """
         self.conn_sec = conn_sec
         self.address = address
-        self.is_address_bound = False
         self.topics = []
         self.callback = printing_callback
 
@@ -55,6 +54,15 @@ class Subscriber:
         # This socket will only be used with the DIRECT router. When it is
         # used it will be be bound to this subscribers address
         self.publisher_sub = self.ctx.socket(zmq.SUB)
+
+        # Bind the address here to force the construction to fail if the address
+        # is already bound. However if the broker is a ROUTING broker, we will need
+        # to bind to the message subscriber. In that case, we will unbind this socket
+        # and bind to the other once we know which subscriber we are using (in the
+        # register method. To make sure that we only make that switch once, we use
+        # the message_sub_bound flag
+        self.publisher_sub.bind(self.address)
+        self.message_sub_bound = False
 
         # move this bind
         # Because either this socket or the publisher registration notification
@@ -110,13 +118,11 @@ class Subscriber:
         # we need to be able to receive notifications about new publishers so
         # we need to connect the appropriate socket to this subscriber's address
         if broker_type == BrokerType.ROUTE:
-            if not self.is_address_bound:
+            if not self.message_sub_bound:
+                self.publisher_sub.unbind(self.address)
                 self.message_sub.bind(self.address)
-                self.is_address_bound = True
+                self.message_sub_bound = True
         elif broker_type == BrokerType.DIRECT:
-            if not self.is_address_bound:
-                self.publisher_sub.bind(self.address)
-                self.is_address_bound = True
 
             # Ensure that publisher_sub is receiving new publishers
             # before we get the list of existing publishers otherwise

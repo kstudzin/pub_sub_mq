@@ -6,7 +6,7 @@ from time import sleep
 import pytest
 import zmq
 
-from pubsub import REG_PUB, REG_SUB
+from pubsub import REG_PUB, REG_SUB, REQ_PUB
 from pubsub.broker import DirectBroker, BrokerType
 
 ctx = zmq.Context()
@@ -82,11 +82,9 @@ class TestDirectBroker:
         req.send_string(SUB_ADDRESS)
 
         message = req.recv_multipart()
-        assert len(message) == 2
+        assert len(message) == 1
         broker_type = message[0].decode(ENCODING)
         assert broker_type == BrokerType.DIRECT
-        addresses = message[1].decode(ENCODING)
-        assert addresses == "0"
 
         subscriber.setsockopt_string(zmq.SUBSCRIBE, TOPIC)
         future = executor.submit(self.wait_for_registration, subscriber)

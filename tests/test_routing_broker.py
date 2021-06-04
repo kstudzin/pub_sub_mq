@@ -10,7 +10,7 @@ from pubsub import REG_PUB, REG_SUB
 from pubsub.broker import RoutingBroker, BrokerType
 
 ctx = zmq.Context()
-broker_address = "tcp://127.0.0.1:5559"
+broker_address = "tcp://127.0.0.1:5554"
 address1 = "tcp://127.0.0.1:5560"
 address2 = "tcp://127.0.0.1:5561"
 
