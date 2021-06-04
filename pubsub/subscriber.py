@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from datetime import datetime
 from time import sleep
 
 import zmq
@@ -180,8 +181,12 @@ class Subscriber:
         notify the application code.
         """
         topic = self.message_sub.recv_string()
+        time_out = datetime.strptime(self.message_sub.recv_string(), "%m/%d/%Y, %H:%M:%S")
         message_type = self.message_sub.recv_string()
         message = self.type2receiver[message_type]()
+        time_in = datetime.utcnow()
+        delta_time = time_in - time_out
+        logging.info(f"Transit delta: {delta_time} with topic size: {len(topic)} and message size: {len(message)}")
         self.notify(topic, message)
 
     def register_callback(self, callback):

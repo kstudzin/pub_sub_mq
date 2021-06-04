@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 from collections import defaultdict
 
@@ -74,5 +75,6 @@ class Publisher:
                                                                "be published")
 
         self.message_pub.send_string(topic, flags=zmq.SNDMORE)
+        self.message_pub.send_string(datetime.utcnow().strftime("%m/%d/%Y, %H:%M:%S"), flags=zmq.SNDMORE)
         self.message_pub.send_string(message_type, flags=zmq.SNDMORE)
         self.type2sender[message_type](message)
