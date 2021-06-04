@@ -1,9 +1,9 @@
 import logging
 from abc import abstractmethod, ABC
 from collections import defaultdict
-
 import zmq
 import pubsub
+from pubsub import APP_LOGGER
 
 
 class BrokerType:
@@ -44,7 +44,7 @@ class AbstractBroker(ABC):
         topic = message[1].decode('utf-8')
         address = message[2].decode('utf-8')
 
-        logging.info(f"Broker processing {reg_type} to topic \"{topic}\" at address {address}")
+        APP_LOGGER.info(f"Broker processing {reg_type} to topic \"{topic}\" at address {address}")
 
         if reg_type == pubsub.REG_PUB:
             self.process_pub_registration(topic, address)
@@ -53,7 +53,7 @@ class AbstractBroker(ABC):
         elif reg_type == pubsub.REQ_PUB:
             self.process_publisher_request(topic)
         else:
-            logging.warning(f"Received registration message with unknown type: {reg_type}")
+            APP_LOGGER.warning(f"Received registration message with unknown type: {reg_type}")
 
     @abstractmethod
     def process_pub_registration(self, topic, address):
@@ -102,9 +102,9 @@ class RoutingBroker(AbstractBroker):
         Receives messages from publishers and publishes
         messages to subscribers
         """
-        logging.debug("Waiting to process message...")
+        APP_LOGGER.debug("Waiting to process message...")
         message = self.message_in.recv_multipart()
-        logging.info(f"Received message: {message}")
+        APP_LOGGER.info(f"Received message: {message}")
 
         self.message_out.send_multipart(message)
 
@@ -116,7 +116,7 @@ class RoutingBroker(AbstractBroker):
 
         # Complete registration with reply containing broker type
         self.registration.send_string(BrokerType.ROUTE)
-        logging.debug(f"Connected to publisher at {address} for topic \"{topic}\"")
+        APP_LOGGER.debug(f"Connected to publisher at {address} for topic \"{topic}\"")
 
     def process_sub_registration(self, topic, address):
         # Connect the message sending socket to the new
@@ -144,7 +144,7 @@ class DirectBroker(AbstractBroker):
         # add socket that can publish newly registered publishers
         # to registered subscribers
         self.message_out = self.context.socket(zmq.PUB)
-        logging.info(f"Created direct broker at {registration_address}")
+        APP_LOGGER.info(f"Created direct broker at {registration_address}")
 
     def process_pub_registration(self, topic, address):
         # add publisher to map of topics to addresses

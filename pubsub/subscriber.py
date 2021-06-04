@@ -1,10 +1,9 @@
-import logging
-from collections import defaultdict
 from datetime import datetime
 from time import sleep
 
 import zmq
 import pubsub
+from pubsub import APP_LOGGER, MESSAGE_LOGGER
 from pubsub.broker import BrokerType
 from pubsub.util import MessageType, TopicNotRegisteredError
 
@@ -83,7 +82,7 @@ class Subscriber:
                               MessageType.PYOBJ: self.message_sub.recv_pyobj,
                               MessageType.JSON: self.message_sub.recv_json}
 
-        logging.info(f"Bound to {address}. Registering with broker at {registration_address}.")
+        APP_LOGGER.info(f"Bound to {address}. Registering with broker at {registration_address}.")
 
     def register(self, topic):
         """ Registers a topic and address with the broker
@@ -94,7 +93,7 @@ class Subscriber:
 
         :param topic: a string topic
         """
-        logging.info(f"Subscriber registering to topic {topic} at address {self.address}")
+        APP_LOGGER.info(f"Subscriber registering to topic {topic} at address {self.address}")
 
         self.topics.append(topic)
 
@@ -140,7 +139,7 @@ class Subscriber:
                 for address in addresses:
                     self.message_sub.connect(address.decode('utf-8'))
 
-        logging.info(f"Connected to {broker_type} broker")
+        APP_LOGGER.info(f"Connected to {broker_type} broker")
 
     def unregister(self, topic):
         """ Unregisters a topic and address
@@ -186,7 +185,8 @@ class Subscriber:
         message = self.type2receiver[message_type]()
         time_in = datetime.utcnow()
         delta_time = time_in - time_out
-        logging.info(f"Transit delta: {delta_time} with topic size: {len(topic)} and message size: {len(message)}")
+        time_in_str = time_in.strftime("%m/%d/%Y, %H:%M:%S")
+        MESSAGE_LOGGER.info(f"{delta_time}, {time_in_str}, {len(topic)}, {len(message)}")
         self.notify(topic, message)
 
     def register_callback(self, callback):
