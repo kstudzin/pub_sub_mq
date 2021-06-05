@@ -43,7 +43,7 @@ This API minimizes the development time to integrate message passing into an app
 - [ ] TODO Revise base on pending merges 06/05/2021
 * *FOLDER* - cs6381-assignment1
   * *FOLDER* - pubsub
-    * __init__.py - Module initializer with dual log file creation 1 for application information and 1 for performance analysis
+    * \_\_init\_\_.py - Module initializer with dual log file creation 1 for application information and 1 for performance analysis
     * broker.py - Three classes for API an AbstractBroker, RoutingBroker(AbstractBroker), and DirectBroker(AbstractBroker)
     * publisher.py - One class that creates well known connection for message passing regardless of broker type
     * subscriber.py - One class that either connects to RoutingBroker or connects to multiple Subscribers based upon addresses provided by DirectBroker
@@ -226,7 +226,7 @@ Mandatory:
 
 - [ ] Start a broker system in either direct or proxy mode
 * - [ ] Create a single topic and publish at least 1,000 messages on that topic. Record the time each message arrives on a subscriber
-* - [ ] At end of test run, take every latency measurement you have seen so far and calculate the first quartile, the median and the third quartile. This tuple of (mode, count(subs), Q1, median, Q3) is the result of a single test run. If you don't know how to calculate quartiles look it up :-) 
+* - [ ] At end of test run, take every latency measurement you have seen so far and calculate the first quartile, the median and the third quartile. This tuple of (mode, count(subs), Q1, median, Q3) is the result of a single test run.
 - [ ] Repeat this entire process with 2,4,8,16 subscribers for both direct and proxy mode. You should have 8 tuples (a.k.a 8 rows) when you are done
 - [ ] Generate a line graph (INCLUDE AXIS LABELS!!) showing at least the median latency versus the number of subscribers. If your graphing tool supports it, generate a boxplot graph so we can see latency vs subscribers, where latency is drawn as a boxplot instead of a single number. If you need to generate one graph for direct mode and one graph for proxy mode that is OK, but it is preferred to put both lines (or both sets of boxplots) onto one graph next to each other
 
@@ -250,7 +250,8 @@ Bonus:
 
 - [ ] Recreate the graphs
 
-- [ ] Expand your explanatory documentation. See if you observe completely different behavior "to the right of" 16 subscribers, and explain what this means for "reading system results". Did you keep the same basic conclusions about system scalability, or did you learn something new?
+- [ ] Expand your explanatory documentation. See if you observe completely different behavior "to the right of" 16 subscribers, and explain what this means for "reading system results". 
+* - [ ] Did you keep the same basic conclusions about system scalability, or did you learn something new?
 * - [ ] Does variabilty in message deliver latency scale in an acceptable manner, or does performance degrade so rapidly as the number of subscribers increases that the system is useless at larger numbers?
 * - [ ] Consider your system resources - was network or cpu or memory the most scarce resource during your test?
 * - [ ] Were you able to run 512 without taxing your local system, or are the results at 512 likely invalid because your host computer was out of resources?
@@ -258,6 +259,5 @@ Bonus:
 * - [ ] For either mode of your system, could you confidently declare an upper limit on message delivery?
 * - [ ] If yes, explain that. If no, what would you need to do to guarantee an upper time limit on "event delivered or thrown away"
 
-- [ ] Rerun the test with 4 subscribers, but edit your mininet links manually. Use the `delay='Xms'` option on addLink to make a single link very slow. Play with this scenario. Does the single slow subscriber cause the non-slow subsribers to starve? Is the publisher slowed down? 
-
-  
+- [ ] Rerun the test with 4 subscribers, but edit your mininet links manually. Use the `delay='Xms'` option on addLink to make a single link very slow. Play with this scenario. 
+* - [ ] Does the single slow subscriber cause the non-slow subsribers to starve? Is the publisher slowed down? 
