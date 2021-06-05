@@ -17,6 +17,9 @@ Given the popularity of digital communication with applications, message passing
 #### Why
 This API minimizes the development time to integrate message passing into an application by providing a few simple options at each link in the messaging chain. At the "server" level the application has the choice to handle all messages or merely serve as a registration mechanism. The publishers have but two options they can **register** for a topic or **publish** a message on that topic. The subscribers have one additional option which publisher's don't have which is to **unsubscribe** from a topic.
 
+#### How (it works)
+- [ ] TODO
+
 #### How (to use)
 [See Command Line Interface(CLI) Usage below](COMMAND-LINE-INTERFACE-USAGE)
 
