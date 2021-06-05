@@ -1,7 +1,5 @@
 # cs6381-assignment1: Single Broker Publish-Subscribe
 
-## API
-
 ### Narrative
 
 #### Who
@@ -14,12 +12,15 @@ There are multiple patterns that have been established to facilitate message del
 Given the popularity of digital communication with applications, message passing is one step shy of required for modern applications. Providing this service to users helps to increase engagement of the user base without adding any additional work for content developers. Once the messaging service is incorporated into the application the users become a significant source of interactive content.
 
 #### Where
+TODO
 
 #### Why
 This API minimizes the development time to integrate message passing into an application by providing a few simple options at each link in the messaging chain. At the "server" level the application has the choice to handle all messages or merely serve as a registration mechanism. The publishers have but two options they can **register** for a topic or **publish** a message on that topic. The subscribers have one additional option which publisher's don't have which is to **unsubscribe** from a topic.
 
-#### How(to use)
+#### How (to use)
 [See Command Line Interface(CLI) Usage below](COMMAND-LINE-INTERFACE-USAGE)
+
+[See Application Programming Interface(API) Usage below](APPLICATION-PROGRAMMING-INTERFACE(API))
 
 ### BROKER CONFIGURATION
 
@@ -33,14 +34,14 @@ This API minimizes the development time to integrate message passing into an app
 
 ### FILE DESCRIPTORS
 
-* FOLDER - cs6381-assignment1
-  * FOLDER - pubsub
+* *FOLDER* - cs6381-assignment1
+  * *FOLDER* - pubsub
     * __init__.py - Module initializer with dual log file creation 1 for application information and 1 for performance analysis
     * broker.py - Three classes for API an AbstractBroker, RoutingBroker(AbstractBroker), and DirectBroker(AbstractBroker)
     * publisher.py - One class that creates well known connection for message passing regardless of broker type
     * subscriber.py - One class that either connects to RoutingBroker or connects to multiple Subscribers based upon addresses provided by DirectBroker
     * util.py - internal API helper file
-  * FOLDER - tests
+  * *FOLDER* - tests
     * test_direct_broker.py - units tests
     * test_publisher.py - units tests
     * test_routing_broker.py - units tests
@@ -51,7 +52,6 @@ This API minimizes the development time to integrate message passing into an app
   * ps_subscriber.py - CLI to register for a topic and receive messages
 
 ### COMMAND LINE INTERFACE USAGE
-#### API USAGE
 * psserver.py - start broker type: Example parameters (--t r --a 127.0.0.1 --p 5555)
   * --t : d = Direct Broker r = Routing Broker
   * --a : IP Address 
@@ -68,11 +68,9 @@ This API minimizes the development time to integrate message passing into an app
   * --t : Topics\<string> 0-* topics
 * create_pub_sub.py - utility to start sample publishers/subscribers
 
-#### UNIT TESTING
-* pytest /tests
 
-
-### PUBLISHER
+### APPLICATION PROGRAMMING INTERFACE(API)
+#### PUBLISHER
 ```
 Publisher(address = <address of this publisher>, registration_address = <address of the broker>)
 
@@ -82,7 +80,7 @@ publish(topic = <string>, message = <string>, message_type = <default = MessageT
 MessageType = [STRING, PYOBJ, JSON]
 ```
 
-### SUBSCRIBER
+#### SUBSCRIBER
 ```
 Subscriber(address = <address of this subscriber>, registration_address = <address of the broker>)
 
@@ -100,8 +98,14 @@ wait_for_registration()
 ```
   
 ### TESTING
-  
-#### LATENCY ANALYSIS
+
+#### UNIT TESTING
+* pytest /tests
+
+#### PERFORMANCE TESTING
+* TODO
+
+### LATENCY ANALYSIS
 
 <table align="center">
   <tr>
