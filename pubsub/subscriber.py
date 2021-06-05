@@ -120,6 +120,7 @@ class Subscriber:
         if broker_type == BrokerType.ROUTE:
             if not self.message_sub_bound:
                 self.publisher_sub.unbind(self.address)
+                sleep(.5)
                 self.message_sub.bind(self.address)
                 self.message_sub_bound = True
         elif broker_type == BrokerType.DIRECT:

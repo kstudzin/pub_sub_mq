@@ -1,7 +1,6 @@
 import argparse
 import sys
 import threading
-import time
 
 from pubsub.subscriber import Subscriber
 this = sys.modules[__name__]
@@ -15,57 +14,43 @@ def config_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(prog='Subscriber', usage='%(prog)s [options]',
                                      description='Start subscribing to topics.')
-    parser.add_argument('--port', metavar='Port', type=int, nargs='?',
-                        help='port numbers')
-    parser.add_argument('--topics', metavar='Topics', type=str, nargs='+',
+    parser.add_argument('address', metavar='Address', type=str,
+                        help='<transport>://<ip_address>:<port>')
+    parser.add_argument('broker_address', metavar='Broker Address', type=str,
+                        help='<transport>://<ip_address>:<port>')
+    parser.add_argument('--topics', metavar='Topics', type=str, nargs='+', required=True,
                         help='topics to subscribe to')
     return parser
 
 
-def register(args) -> Subscriber:
+def register(address, broker_address, topics) -> Subscriber:
     """
     Register a subscriber based upon user arguments.
-    :param args: A port number and a list of topics provided in arguments
+    :param address: Address to bind this publisher to
+    :param broker_address: Address of the broker to connect to
+    :param topics: A list of topics to subscribe to
     :return: A Subscriber object
     """
-    if args.port is not None:
-        subscriber = Subscriber(f"tcp://localhost:{args.port}")
-    else:
-        return None
+    subscriber = Subscriber(address, broker_address)
 
-    if args.topics is not None:
-        for topic in args.topics:
+    if topics is not None:
+        for topic in topics:
             subscriber.register(topic)
+
     return subscriber
-
-
-def listen_for_messages() -> None:
-    print("Listening....")
-    while True:
-        # this.subscriber getMessages
-        sample = "2021-05-25 13:19:42.504443 : FB : 202.11"
-        sent_time, topic, message = sample.split(" : ")
-        print(f"\nTime= {sent_time} Topic= {topic} Message= {message}")
-        time.sleep(3)
 
 
 def main():
     arg_parser = config_parser()
     args = arg_parser.parse_args()
-    this.subscriber = register(args)
-    threading.Thread(target=listen_for_messages, daemon=True).start()
+    address = args.address
+    broker_address = args.broker_address
+    topics = args.topics
+    subscriber = register(address, broker_address, topics)
+    # threading.Thread(target=listen_for_messages, args=[subscriber], daemon=True).start()
 
     while True:
-        option = input("\nEnter 't' to add topic, 'q' to quit: ")
-        if option.casefold() == "t":
-            topic = input("Enter topic: ")
-            print(topic)
-            if len(topic) > 0:
-                this.subscriber.register(topic)
-        elif option.casefold() == "q":
-            sys.exit(-1)
-        else:
-            print("Please enter valid option")
+        subscriber.wait_for_msg()
 
 
 if __name__ == "__main__":
