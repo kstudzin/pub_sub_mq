@@ -2,39 +2,70 @@
 
 ## API
 
+### Narrative
+
+#### Who
+There are multiple patterns that have been established to facilitate message delivery within applications. This Application Programming Interface(API) provides and way to utilize the relatively simple Publisher/Subscriber model. This API allows a developer two options for how message passing would occur within their application. One provides an intermediary through which all messages pass from a publisher to a suscriber. The second option simply provides a means of discovery such that a subscriber can find a publisher to receive messages from directly.
+
+#### What
+[See File Descriptors below](FILE-DESCRIPTORS)
+
+#### When
+Given the popularity of digital communication with applications, message passing is one step shy of required for modern applications. Providing this service to users helps to increase engagement of the user base without adding any additional work for content developers. Once the messaging service is incorporated into the application the users become a significant source of interactive content.
+
+#### Where
+
+#### Why
+This API minimizes the development time to integrate message passing into an application by providing a few simple options at each link in the messaging chain. At the "server" level the application has the choice to handle all messages or merely serve as a registration mechanism. The publishers have but two options they can **register** for a topic or **publish** a message on that topic. The subscribers have one additional option which publisher's don't have which is to **unsubscribe** from a topic.
+
+#### How(to use)
+[See Command Line Interface(CLI) Usage below](COMMAND-LINE-INTERFACE-USAGE)
+
 ### BROKER CONFIGURATION
 
 * PUBLISHER -> ROUTINGBROKER -> SUBSCRIBER
 
-All message passing goes through routing broker.
+  * All message passing goes through routing broker.
 
 * PUBLISHER -> DIRECTBROKER -> SUBSCRIBER
 
-Direct broker holds registry to all publishers to send messages directly to subscriber.
+  * Direct broker holds registry to all publishers to send messages directly to subscriber.
 
 ### FILE DESCRIPTORS
 
-* folder - cs6381-assignment1
-  * folder - pubsub
-    * __inin__.py - 
-    * broker.py - 
-    * publisher.py -
-    * util.py - internal helper file
-  * folder - tests
+* FOLDER - cs6381-assignment1
+  * FOLDER - pubsub
+    * __init__.py - Module initializer with dual log file creation 1 for application information and 1 for performance analysis
+    * broker.py - Three classes for API an AbstractBroker, RoutingBroker(AbstractBroker), and DirectBroker(AbstractBroker)
+    * publisher.py - One class that creates well known connection for message passing regardless of broker type
+    * subscriber.py - One class that either connects to RoutingBroker or connects to multiple Subscribers based upon addresses provided by DirectBroker
+    * util.py - internal API helper file
+  * FOLDER - tests
     * test_direct_broker.py - units tests
     * test_publisher.py - units tests
     * test_routing_broker.py - units tests
     * test_subscriber.py - units tests
   * create_pub_sub.py - 
   * psserver.py - CLI to start direct or routing broker
+  * ps_publisher.py - CLI to register for a topic and publish messages
+  * ps_subscriber.py - CLI to register for a topic and receive messages
 
 ### COMMAND LINE INTERFACE USAGE
 #### API USAGE
 * psserver.py - start broker type: Example parameters (--t r --a 127.0.0.1 --p 5555)
   * --t : d = Direct Broker r = Routing Broker
-  * --a : IP Address
+  * --a : IP Address 
   * --p : Port number
-
+* ps_publisher - start publisher: Example parameters (tcp://10.0.0.1:5555 tcp://127.0.0.1:5555 -t hello world -r 20 -d 0.5)
+  * address - publisher's own address formatted as \<transport>://<ip_address>:\<port>
+  * broker address - brokers known address formatted as \<transport>://<ip_address>:\<port>
+  * --t : Topics\<string> 0-* topics
+  * --r : Random\<int> - number of random messages to send 
+  * --d : Delay\<float> - amount of time in seconds before sending messages
+* ps_subscriber - start subscriber: Example parameters (tcp://10.0.0.1:5555 tcp://127.0.0.1:5555 -t hello world)
+  * address - subscriber's own address formatted as \<transport>://<ip_address>:\<port>
+  * broker address - brokers known address formatted as \<transport>://<ip_address>:\<port>
+  * --t : Topics\<string> 0-* topics
 * create_pub_sub.py - utility to start sample publishers/subscribers
 
 #### UNIT TESTING
