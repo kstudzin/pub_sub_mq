@@ -11,14 +11,21 @@ There are multiple patterns that have been established to facilitate message del
 #### When
 Given the popularity of digital communication with applications, message passing is one step shy of required for modern applications. Providing this service to users helps to increase engagement of the user base without adding any additional work for content developers. Once the messaging service is incorporated into the application the users become a significant source of interactive content.
 
-#### Where
-- [ ] TODO
-
 #### Why
 This API minimizes the development time to integrate message passing into an application by providing a few simple options at each link in the messaging chain. At the "server" level the application has the choice to handle all messages or merely serve as a registration mechanism. The publishers have but two options they can **register** for a topic or **publish** a message on that topic. The subscribers have one additional option which publisher's don't have which is to **unsubscribe** from a topic.
 
 #### How (it works)
-- [ ] TODO
+- [ ] TODO Review
+##### Broker
+When you first start the "server" you have two options regarding the work that will be required by this entity. You can choose the routing option to have all parties register with the broker and handle the work of serving as an intermediary for all messages passing from publishers to subscribers, in addition to listening for parties registering. The second option, known as the direct broker, only serves as a mechanism for publishers to register who they are(location) and which topic(s) that they will be publishing. After that registration process the broker will not communicate with the publisher again unless the publisher registers additional topics.
+
+##### Publisher
+The behavior of the publisher does not change based upon the configuration of the broker. The publisher will establish a connection to the well known broker and registers with the broker the topic(s) that it will be publishing as well as its own location. Once the handshake has occured with the broker, the publisher may begin publishing messages without any regard for what entities may or may not be "listening" for those messages.
+
+##### Subscriber
+The behavior of the subscriber varies only slighly based upon the configuration of the broker, not so much as to how, but who. In both scenarios the subscriber establishes a connection with the well known broker. This connection allows for the subscriber to register interest in one or more topics at any time. The second connection that is established by the subscriber does depend upon the broker type. 
+In the case of the routing broker, the subscriber will inform the broker of its well known location at which it will be listening for all topics sent from the broker. In this situation the subscriber has to filter out the messages for which they haven't subscribed. This means that the subscriber will potentially receive a great deal of messages and it will simply drop those messages for unregistered topics.
+In the direct broker scenario, the subscriber establishes connections directly with each of publishers that they have subscribed. By doing so the amount of traffic that the subscriber will receive will be greatly reduced and no filtering is required by the subscriber.
 
 #### How (to use)
 [See Command Line Interface(CLI) Usage below](COMMAND-LINE-INTERFACE-USAGE)
@@ -61,7 +68,7 @@ This API minimizes the development time to integrate message passing into an app
 <hr>
 
 ### COMMAND LINE INTERFACE USAGE
-- [ ] TODO Revise base on pending merges 06/05/2021
+- [ ] TODO Review base on pending merges 06/05/2021
 * psserver.py - start broker type: Example parameters (--t r --a 127.0.0.1 --p 5555)
   * --t : d = Direct Broker r = Routing Broker
   * --a : IP Address 
@@ -114,7 +121,7 @@ wait_for_registration()
 
 #### UNIT TESTING
 From main project directory
-* To simply run application unit tests
+* To run application unit tests
 
 `pytest /tests`
 * To run tests and get coverage report
@@ -137,7 +144,7 @@ From main project directory
     <td align="center" colspan="10">Publisher Topics (Length)</td>
   </tr>
   <tr align="center">
-        <th>Subscribers</th><th>1(short)</th><th>1(medium)</th><th>1(long)</th><th>2(short)</th><th>2(medium)</th><th>2(long)</th><th>3(short)</th><th>3(medium)</th><th>3(long)</th>
+    <th>Subscribers</th><th>1(short)</th><th>1(medium)</th><th>1(long)</th><th>2(short)</th><th>2(medium)</th><th>2(long)</th><th>3(short)</th><th>3(medium)</th><th>3(long)</th>
   </tr>
   <tr align="center">
     <td align="right">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
