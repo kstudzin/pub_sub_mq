@@ -12,7 +12,7 @@ There are multiple patterns that have been established to facilitate message del
 Given the popularity of digital communication with applications, message passing is one step shy of required for modern applications. Providing this service to users helps to increase engagement of the user base without adding any additional work for content developers. Once the messaging service is incorporated into the application the users become a significant source of interactive content.
 
 #### Why
-This API minimizes the development time to integrate message passing into an application by providing a few simple options at each link in the messaging chain. At the "server" level the application has the choice to handle all messages or merely serve as a registration mechanism. The publishers have but two options they can **register** for a topic or **publish** a message on that topic. The subscribers have one additional option which publisher's don't have which is to **unsubscribe** from a topic.
+This API minimizes the development time to integrate message passing into an application by providing a few simple options at each link in the messaging chain. At the "server" level the application has the choice to handle all messages or merely serve as a registration mechanism. The publishers have but two options they can **register** for a topic or **publish** a message on that topic. The subscribers can choose to **subscribe** or **unsubscribe** from a topic, as well as, **listen** to all topics for which they have registered.
 
 #### How (it works)
 - [ ] TODO Review
