@@ -5,6 +5,10 @@ class MessageType:
     JSON = "JSON"
 
 
+class StringFormat:
+    TIME = "%m/%d/%Y %H:%M:%S"
+
+
 class TopicNotRegisteredError(Exception):
 
     def __init__(self, topic, address, message):

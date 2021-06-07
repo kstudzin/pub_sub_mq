@@ -2,7 +2,7 @@ from datetime import datetime
 import zmq
 import pubsub
 from pubsub import APP_LOGGER
-from pubsub.util import MessageType, TopicNotRegisteredError
+from pubsub.util import MessageType, TopicNotRegisteredError, StringFormat
 
 
 class Publisher:
@@ -73,6 +73,6 @@ class Publisher:
                                                                "be published")
 
         self.message_pub.send_string(topic, flags=zmq.SNDMORE)
-        self.message_pub.send_string(datetime.utcnow().strftime("%m/%d/%Y, %H:%M:%S"), flags=zmq.SNDMORE)
+        self.message_pub.send_string(datetime.utcnow().strftime(StringFormat.TIME), flags=zmq.SNDMORE)
         self.message_pub.send_string(message_type, flags=zmq.SNDMORE)
         self.type2sender[message_type](message)
