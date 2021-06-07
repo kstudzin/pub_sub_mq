@@ -39,10 +39,12 @@ def main():
 
     broker_address = address_format.format(broker.IP(), default_port)
 
+    # Run the broker process
     broker_cmd = broker_cmd_fmt.format(broker.IP(), default_port, 'r')
     print(f"Running {broker_cmd}")
     broker.cmd(broker_cmd)
 
+    # Run the subscriber processes
     subscriber_cmd = subscriber_cmd_fmt.format(
         address_format.format(subscriber.IP(), default_port),
         broker_address
@@ -51,6 +53,7 @@ def main():
     subscriber.sendCmd(subscriber_cmd)
     sleep(0.5)
 
+    # Run the publisher process
     publisher_cmd = publisher_cmd_fmt.format(
         address_format.format(publisher.IP(), default_port),
         broker_address
@@ -58,7 +61,10 @@ def main():
     print(f"Running {publisher_cmd}")
     publisher.cmd(publisher_cmd)
 
-    print(f"Subscriber output: {subscriber.waitOutput()}")
+    # Wait for the subscriber to finish processing before exiting
+    print(f"Subscriber output length: {len(subscriber.waitOutput())}")
+
+    # Kill the broker process before exiting
     broker.cmd(f"kill %1")
 
     net.stop()
