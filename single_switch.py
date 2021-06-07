@@ -26,17 +26,11 @@ class SingleSwitchTopo(Topo):
             self.addLink(host, switch)
 
 
-def simple_test():
+def main():
     """Create and test a simple network"""
     topo = SingleSwitchTopo(n=3)
     net = Mininet(topo=topo, controller=OVSController)
     net.start()
-
-    print("Dumping host connections")
-    dumpNodeConnections(net.hosts)
-
-    print("Testing network connectivity")
-    net.pingAll()
 
     hosts = net.hosts
     broker = hosts[0]
@@ -67,12 +61,10 @@ def simple_test():
     print(f"Subscriber output: {subscriber.waitOutput()}")
     broker.cmd(f"kill %1")
 
-    # CLI(net)
-
     net.stop()
 
 
 if __name__ == '__main__':
     # Tell mininet to print useful information
     setLogLevel('info')
-    simple_test()
+    main()
