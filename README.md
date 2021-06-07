@@ -37,13 +37,13 @@ In the direct broker scenario, the subscriber establishes connections directly w
 
 <hr>
 
-### BROKER CONFIGURATION
+### BROKER PROCESS DIAGRAMS
 
-* PUBLISHER -> ROUTINGBROKER -> SUBSCRIBER
+[Routing_Broker_Diagram](https://user-images.githubusercontent.com/76195473/121063916-ea9a4c80-c794-11eb-9a7f-162a83d3ed62.png)
 
   * All message passing goes through routing broker.
 
-* PUBLISHER -> DIRECTBROKER -> SUBSCRIBER
+[Direct_Broker_Diagram](https://user-images.githubusercontent.com/76195473/121063991-07cf1b00-c795-11eb-910e-6cae570af6cb.png)
 
   * Direct broker holds registry to all publishers to send messages directly to subscribers who register for topics.
 
