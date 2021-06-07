@@ -6,7 +6,7 @@
 There are multiple patterns that have been established to facilitate message delivery within applications. This Application Programming Interface(API) provides and way to utilize the relatively simple Publisher/Subscriber model. This API allows a developer two options for how message passing would occur within their application. One provides an intermediary through which all messages pass from a publisher to a subscriber. The second option simply provides a means of discovery such that a subscriber can find a publisher to receive messages from directly.
 
 #### What
-[See File Descriptors below](#file-descriptions)
+[See File Descriptions below](#file-descriptions)
 
 
 #### When
@@ -20,14 +20,14 @@ This API minimizes the development time to integrate message passing into an app
 ##### Broker
 The broker in this messaging API incorporates space decoupling among publishers and subscribers. This means that either party can exist regardless of the presence of the opposing party. When you first start the server you have two options regarding the work that will be required by this entity. 
 You can choose the routing option to have all parties register with the broker that handles the work of serving as an intermediary for all messages passing from publishers to subscribers. The broker also in continues listening for parties registering. 
-The second option, known as the direct broker, only serves as a mechanism for publishers to register who they are(location) and which topic(s) that they will be publishing. After that registration process the broker will not communicate with the publisher again unless the publisher registers additional topics. The subscribers register with this borker type only for the purpose of discovering if there are publisher(s) for a given topic. If publishers exist for a topic the subscriber will receive a list of addresses from the broker that they can connect to.
+The second option, known as the direct broker, only serves as a mechanism for publishers to register who they are(location) and which topic(s) that they will be publishing. After that registration process the broker will not communicate with the publisher again unless the publisher registers additional topics. The subscribers register with this broker type only for the purpose of discovering if there are publisher(s) for a given topic. If publishers exist for a topic the subscriber will receive a list of addresses from the broker that they can connect to. If a publisher registers for a topic after a subscriber has subscribed then a message will be sent to subscribers with the location of the new publisher.
 
 ##### Publisher
 The behavior of the publisher does not change based upon the configuration of the broker. The publisher will establish a connection to the well known broker and registers with the broker the topic(s) that it will be publishing as well as its own location. Once the handshake has occured with the broker, the publisher may begin publishing messages without any regard for what entities may or may not be "listening" for those messages. There exists an edge case where subscribers may miss messages if a publisher registers for a topic and immediately begins sending messages.
 
 ##### Subscriber
 The behavior of the subscriber varies only slighly based upon the configuration of the broker, not so much as to how, but who. In both scenarios the subscriber establishes a connection with the well known broker. This connection allows for the subscriber to register interest in one or more topics at any time. The second connection that is established by the subscriber does depend upon the broker type. 
-In the case of the routing broker, the subscriber will inform the broker of its well known location at which it will be listening for all topics sent from the broker. From that point all messages from all publishers will be passed to the subscriber.
+In the case of the routing broker, the subscriber will inform the broker of its well known location at which it will be listening for all topics sent from the broker. From that point all messages from all publishers for a given topic will be passed to the subscriber.
 In the direct broker scenario, the address of the publisher is received by the subscriber upon registration for a given topic.  Upon receipt, subscriber establishes connections directly with each of publishers that they have subscribed. 
 
 #### How (to use)
@@ -50,7 +50,7 @@ In the direct broker scenario, the address of the publisher is received by the s
 <hr>
 
 ### FILE DESCRIPTIONS
-- [ ] TODO Revise base on pending merges 06/05/2021
+- [ ] TODO Revise base on pending merges 06/07/2021
 * *FOLDER* - cs6381-assignment1
   * *FOLDER* - pubsub
     * \_\_init\_\_.py - Package initializer with dual log file creation 1 for application information and 1 for performance analysis
@@ -88,7 +88,7 @@ In the direct broker scenario, the address of the publisher is received by the s
 <hr>
 
 ### COMMAND LINE INTERFACE USAGE
-- [ ] TODO Review base on pending merges 06/05/2021
+- [ ] TODO Review base on pending merges 06/07/2021
 * psserver.py - start broker
   * -h : Help - to see argument options
   * Example: python3 psserver.py --t r --a 127.0.0.1 --p 5555
@@ -140,6 +140,9 @@ wait_for_msg()
 
 wait_for_registration()
 ```
+* register_callback() provides the application a means of receiving the messages.
+* wait_for_message() must be running on the client upon receipt of a message the notify() is called which in turn sends the message details to the registered callback. 
+* wait_for_registration() must be run in a seperate thread so that it will not block the subscriber from receiving messages.
 
 <hr>
 
@@ -154,12 +157,9 @@ From main project directory
 
 `pytest --cov=pubsub -cov-report html`
 
-#### PERFORMANCE TESTING
-- [ ] TODO
-
 <hr>
 
-### LATENCY ANALYSIS
+#### PERFORMANCE TESTING: LATENCY ANALYSIS
 - [ ] TODO
 
 <table border=2 align="center">
