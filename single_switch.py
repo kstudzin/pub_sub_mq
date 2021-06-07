@@ -10,9 +10,10 @@ from mininet.log import setLogLevel
 
 address_format = "tcp://{0}:{1}"
 default_port = "5555"
-broker_cmd = "python ../psserver --address {0} --port {1} --type {2}"
-publisher_cmd = "python ../ps_publisher.py {0} {1} --topics lorem -r 1000"
-subscriber_cmd = "python ../ps_publisher.py {0} {1} --topics lorem "
+broker_cmd = "python psserver.py --address {0} --port {1} --type {2}"
+publisher_cmd = "python ps_publisher.py {0} {1} --topics lorem -r 1000"
+subscriber_cmd = "python ps_publisher.py {0} {1} --topics lorem "
+
 
 class SingleSwitchTopo(Topo):
     """Single switch connected to n hosts."""
@@ -42,17 +43,20 @@ def simple_test():
     publisher = hosts[1]
     subscriber = hosts[2]
 
-    broker_address = address_format.format(broker.IP, default_port)
-    broker.cmd(broker_cmd.format(broker.IP, default_port, 'r'))
-    publisher.cmd(publisher_cmd.format(
-        address_format.format(publisher.IP, default_port),
-        broker_address
-        ))
-    sleep(.05)
-    subscriber.cmd(subscriber_cmd.format(
-        address_format.format(subscriber.IP, default_port),
-        broker_address
-    ))
+    broker.cmd('echo hello > broker.log')
+    publisher.cmd('echo hello > pub.log')
+    subscriber.cmd('echo hello > sub.log')
+    # broker_address = address_format.format(broker.IP, default_port)
+    # broker.cmd(broker_cmd.format(broker.IP, default_port, 'r'))
+    # publisher.cmd(publisher_cmd.format(
+    #     address_format.format(publisher.IP, default_port),
+    #     broker_address
+    #     ))
+    # sleep(.05)
+    # subscriber.cmd(subscriber_cmd.format(
+    #     address_format.format(subscriber.IP, default_port),
+    #     broker_address
+    # ))
     # CLI(net)
 
     net.stop()
