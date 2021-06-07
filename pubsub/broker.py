@@ -21,8 +21,7 @@ class AbstractBroker(ABC):
     """
     context = zmq.Context()
 
-    def __init__(self, registration_address, conn_sec=.5):
-        self.conn_sec = conn_sec
+    def __init__(self, registration_address):
         self.registration = self.context.socket(zmq.REP)
 
         self.connect_address = registration_address
