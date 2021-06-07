@@ -43,9 +43,13 @@ def simple_test():
     publisher = hosts[1]
     subscriber = hosts[2]
 
-    broker.cmd('echo hello > broker.log')
-    publisher.cmd('echo hello > pub.log')
-    subscriber.cmd('echo hello > sub.log')
+    broker.sendCmd('echo hello > broker.log')
+    subscriber.sendCmd('echo hello > sub.log')
+    publisher.cmd('date > pub.log; sleep 5; date >> pub.log')
+
+    print(f"Subscriber output: {subscriber.waitOutput()}")
+    print(f"Broker output: {broker.waitOutput()}")
+
     # broker_address = address_format.format(broker.IP, default_port)
     # broker.cmd(broker_cmd.format(broker.IP, default_port, 'r'))
     # publisher.cmd(publisher_cmd.format(
