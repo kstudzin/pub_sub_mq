@@ -82,7 +82,7 @@ class TestDirectBroker:
         req.send_string(SUB_ADDRESS)
 
         message = req.recv_multipart()
-        assert len(message) == 1
+        assert len(message) == 2
         broker_type = message[0].decode(ENCODING)
         assert broker_type == BrokerType.DIRECT
 
