@@ -6,7 +6,7 @@
 There are multiple patterns that have been established to facilitate message delivery within applications. This Application Programming Interface(API) provides and way to utilize the relatively simple Publisher/Subscriber model. This API allows a developer two options for how message passing would occur within their application. One provides an intermediary through which all messages pass from a publisher to a subscriber. The second option simply provides a means of discovery such that a subscriber can find a publisher to receive messages from directly.
 
 #### What
-[See File Descriptors below](#file-descriptors)
+[See File Descriptors below](#file-descriptions)
 
 
 #### When
@@ -19,7 +19,7 @@ This API minimizes the development time to integrate message passing into an app
 - [ ] TODO Review
 ##### Broker
 The broker in this messaging API incorporates space decoupling among publishers and subscribers. This means that either party can exist regardless of the presence of the opposing party. When you first start the server you have two options regarding the work that will be required by this entity. 
-You can choose the routing option to have all parties register with the broker and handle the work of serving as an intermediary for all messages passing from publishers to subscribers, in addition to listening for parties registering. 
+You can choose the routing option to have all parties register with the broker that handles the work of serving as an intermediary for all messages passing from publishers to subscribers. The broker also in continues listening for parties registering. 
 The second option, known as the direct broker, only serves as a mechanism for publishers to register who they are(location) and which topic(s) that they will be publishing. After that registration process the broker will not communicate with the publisher again unless the publisher registers additional topics. The subscribers register with this borker type only for the purpose of discovering if there are publisher(s) for a given topic. If publishers exist for a topic the subscriber will receive a list of addresses from the broker that they can connect to.
 
 ##### Publisher
@@ -27,8 +27,8 @@ The behavior of the publisher does not change based upon the configuration of th
 
 ##### Subscriber
 The behavior of the subscriber varies only slighly based upon the configuration of the broker, not so much as to how, but who. In both scenarios the subscriber establishes a connection with the well known broker. This connection allows for the subscriber to register interest in one or more topics at any time. The second connection that is established by the subscriber does depend upon the broker type. 
-In the case of the routing broker, the subscriber will inform the broker of its well known location at which it will be listening for all topics sent from the broker. In this situation the subscriber has to filter out the messages for which they haven't subscribed. This means that the subscriber will potentially receive a great deal of messages and it will simply drop those messages for unregistered topics.
-In the direct broker scenario, the subscriber establishes connections directly with each of publishers that they have subscribed. By doing so the amount of traffic that the subscriber will receive will be greatly reduced and no filtering is required by the subscriber.
+In the case of the routing broker, the subscriber will inform the broker of its well known location at which it will be listening for all topics sent from the broker. From that point all messages from all publishers will be passed to the subscriber.
+In the direct broker scenario, the address of the publisher is received by the subscriber upon registration for a given topic.  Upon receipt, subscriber establishes connections directly with each of publishers that they have subscribed. 
 
 #### How (to use)
 [See Command Line Interface(CLI) Usage below](#command-line-interface-usage)
@@ -49,11 +49,11 @@ In the direct broker scenario, the subscriber establishes connections directly w
 
 <hr>
 
-### FILE DESCRIPTORS
+### FILE DESCRIPTIONS
 - [ ] TODO Revise base on pending merges 06/05/2021
 * *FOLDER* - cs6381-assignment1
   * *FOLDER* - pubsub
-    * \_\_init\_\_.py - Module initializer with dual log file creation 1 for application information and 1 for performance analysis
+    * \_\_init\_\_.py - Package initializer with dual log file creation 1 for application information and 1 for performance analysis
     * broker.py - Three classes for API an AbstractBroker, RoutingBroker(AbstractBroker), and DirectBroker(AbstractBroker)
     * publisher.py - One class that creates well known connection for message passing regardless of broker type
     * subscriber.py - One class that either connects to RoutingBroker or connects to multiple Subscribers based upon addresses provided by DirectBroker
@@ -67,22 +67,45 @@ In the direct broker scenario, the subscriber establishes connections directly w
   * ps_publisher.py - CLI to register for a topic and publish messages
   * ps_subscriber.py - CLI to register for a topic and receive messages
 
+<hr>
 
+### SYSTEM DEMONSTRATION
+#### RECOMMENDED
+ * [Install Virtual Machine](https://www.virtualbox.org/wiki/Downloads)
+ * [Install Ubuntu OS on VM](https://linuxconfig.org/how-to-install-ubuntu-20-04-on-virtualbox)
+
+#### REQUIRED
+ * [Install 0mq](https://zeromq.org/download/)
+ * [Install Faker](https://faker.readthedocs.io/en/master/#basic-usage)
+ * [Install Mininet](http://mininet.org/download/)
+ * Install xterm on OS: Ubuntu `sudo apt-get install -y xterm`
+
+#### MININET
+ * Open terminal in virtual machine operating system
+ * Start mininet service `sudo mn --topo single, 3` switch = single , hosts = 3
+ * Start multiple terminals `xterm h1 h2 h3`
+ * Start one of each CLIs listed below within each of the terminal windows
 <hr>
 
 ### COMMAND LINE INTERFACE USAGE
 - [ ] TODO Review base on pending merges 06/05/2021
-* psserver.py - start broker type: Example parameters (--t r --a 127.0.0.1 --p 5555)
+* psserver.py - start broker
+  * -h : Help - to see argument options
+  * Example: python3 psserver.py --t r --a 127.0.0.1 --p 5555
   * --t : d = Direct Broker r = Routing Broker
   * --a : IP Address 
   * --p : Port number
-* ps_publisher - start publisher: Example parameters (tcp://10.0.0.1:5555 tcp://127.0.0.1:5555 -t hello world -r 20 -d 0.5)
+* ps_publisher - start publisher
+  * -h : Help - to see argument options
+  * Example: python3 ps_publisher.py tcp://127.0.0.1:5556 tcp://127.0.0.1:5555 --t hello --r 100 --d 1.5
   * address - publisher's own address formatted as \<transport>://<ip_address>:\<port>
   * broker address - brokers known address formatted as \<transport>://<ip_address>:\<port>
   * --t : Topics\<string> 0-* topics
   * --r : Random\<int> - number of random messages to send 
   * --d : Delay\<float> - amount of time in seconds before sending messages
-* ps_subscriber - start subscriber: Example parameters (tcp://10.0.0.1:5555 tcp://127.0.0.1:5555 -t hello world)
+* ps_subscriber - start subscriber
+  * -h : Help - to see argument options
+  * Example: python3 ps_subscriber.py tcp://127.0.0.1:5557 tcp://127.0.0.1:5555 --t hello
   * address - subscriber's own address formatted as \<transport>://<ip_address>:\<port>
   * broker address - brokers known address formatted as \<transport>://<ip_address>:\<port>
   * --t : Topics\<string> 0-* topics
@@ -126,7 +149,7 @@ wait_for_registration()
 From main project directory
 * To run application unit tests
 
-`pytest /tests`
+`pytest`
 * To run tests and get coverage report
 
 `pytest --cov=pubsub -cov-report html`
