@@ -20,6 +20,8 @@ def config_parser() -> argparse.ArgumentParser:
                         help='<transport>://<ip_address>:<port>')
     parser.add_argument('--topics', metavar='Topics', type=str, nargs='+', required=True,
                         help='topics to subscribe to')
+    parser.add_argument('--start_listener', action='store_true',
+                        help='flag to start thread to listen for publisher registration')
     return parser
 
 
@@ -40,6 +42,11 @@ def register(address, broker_address, topics) -> Subscriber:
     return subscriber
 
 
+def listen_for_registration(subscriber):
+    while True:
+        subscriber.wait_for_registration()
+
+
 def main():
     arg_parser = config_parser()
     args = arg_parser.parse_args()
@@ -47,7 +54,9 @@ def main():
     broker_address = args.broker_address
     topics = args.topics
     subscriber = register(address, broker_address, topics)
-    # threading.Thread(target=listen_for_messages, args=[subscriber], daemon=True).start()
+
+    if args.start_listener:
+        threading.Thread(target=listen_for_registration, args=[subscriber], daemon=True).start()
 
     while True:
         subscriber.wait_for_msg()
