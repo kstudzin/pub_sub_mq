@@ -6,6 +6,20 @@ from pubsub.subscriber import Subscriber
 this = sys.modules[__name__]
 this.subscriber = None
 
+EXIT_TOPIC = "EXIT_MESSAGE"
+EXIT_MESSAGE = "Exiting..."
+
+exit_received = False
+
+
+def exiting_callback(topic, message):
+    if topic == EXIT_TOPIC and message == EXIT_MESSAGE:
+        print("Received exit message...")
+        global exit_received
+        exit_received = True
+    else:
+        print(f"Topic: {topic}, Message: {message}")
+
 
 def config_parser() -> argparse.ArgumentParser:
     """
@@ -22,6 +36,9 @@ def config_parser() -> argparse.ArgumentParser:
                         help='topics to subscribe to')
     parser.add_argument('--start_listener', action='store_true',
                         help='flag to start thread to listen for publisher registration')
+    parser.add_argument('--receive_exit', '-e', action='store_true',
+                        help='flag indicating that this program will exit when publisher'
+                             'indicates it has sent its final message')
     return parser
 
 
@@ -48,18 +65,27 @@ def listen_for_registration(subscriber):
 
 
 def main():
+    print("Intializing...")
     arg_parser = config_parser()
     args = arg_parser.parse_args()
     address = args.address
     broker_address = args.broker_address
     topics = args.topics
+
+    if args.receive_exit:
+        topics.append(EXIT_TOPIC)
+
     subscriber = register(address, broker_address, topics)
+    subscriber.register_callback(exiting_callback)
 
     if args.start_listener:
         threading.Thread(target=listen_for_registration, args=[subscriber], daemon=True).start()
 
-    while True:
+    print("Waiting for messages...")
+    while not exit_received:
         subscriber.wait_for_msg()
+
+    print("Exiting...")
 
 
 if __name__ == "__main__":

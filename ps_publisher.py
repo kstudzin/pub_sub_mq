@@ -9,6 +9,9 @@ from pubsub.publisher import Publisher
 faker = Faker()
 Faker.seed(0)
 
+EXIT_TOPIC = "EXIT_MESSAGE"
+EXIT_MESSAGE = "Exiting..."
+
 
 def config_parser() -> argparse.ArgumentParser:
     """
@@ -73,6 +76,8 @@ def handle_random(publisher, topics, num_messages):
         if num_sent % 100 == 0:
             print(f"Sent {num_sent} messages")
 
+    publisher.publish(EXIT_TOPIC, EXIT_MESSAGE)
+
 
 def get_message():
     return faker.sentence()
@@ -85,6 +90,9 @@ def main():
     broker_address = args.broker_address
     topics = args.topics
     delay = args.delay
+
+    if args.random:
+        topics.append(EXIT_TOPIC)
 
     publisher = register(address, broker_address, topics)
 
