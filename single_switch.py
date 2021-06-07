@@ -35,7 +35,7 @@ def main():
     hosts = net.hosts
     broker = hosts[0]
     publisher = hosts[1]
-    subscriber = hosts[2]
+    subscribers = hosts[2:]
 
     broker_address = address_format.format(broker.IP(), default_port)
 
@@ -45,12 +45,13 @@ def main():
     broker.cmd(broker_cmd)
 
     # Run the subscriber processes
-    subscriber_cmd = subscriber_cmd_fmt.format(
-        address_format.format(subscriber.IP(), default_port),
-        broker_address
-    )
-    print(f"Running {subscriber_cmd}")
-    subscriber.sendCmd(subscriber_cmd)
+    for subscriber in subscribers:
+        subscriber_cmd = subscriber_cmd_fmt.format(
+            address_format.format(subscriber.IP(), default_port),
+            broker_address
+        )
+        print(f"Running {subscriber_cmd}")
+        subscriber.sendCmd(subscriber_cmd)
     sleep(0.5)
 
     # Run the publisher process
