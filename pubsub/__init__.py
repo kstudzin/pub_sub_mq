@@ -20,4 +20,3 @@ MESSAGE_LOGGER = setup_logger('message_logger', 'message_logfile.log', message_f
 
 REG_PUB = "REGISTER_PUBLISHER"
 REG_SUB = "REGISTER_SUBSCRIBER"
-REQ_PUB = "REQUEST_PUBLISHERS"

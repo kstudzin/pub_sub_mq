@@ -19,8 +19,8 @@ class Subscriber:
     when it receives messages on registered topics.
 
     Sample usage:
-    subscriber = Subscriber("http://127.0.0.1:5555"")
-    subscriber.register("topic1", "http://127.0.0.1:5557")
+    subscriber = Subscriber("http://127.0.0.1:5557", "http://127.0.0.1:5555")
+    subscriber.register("topic1")
     subscriber.register_callback(callback_name)
     subscriber.wait_for_msg()
 
@@ -33,11 +33,11 @@ class Subscriber:
         """Creates a subscriber instance
 
         :param address: the address of this subscriber. String with
-        format <scheme>://<ip_addr>:<port>
+            format <scheme>://<ip_addr>:<port>
         :param registration_address: address of the broker with which this publisher
-        registers topics. String with format <scheme>://<ip_addr>:<port>
+            registers topics. String with format <scheme>://<ip_addr>:<port>
         :param conn_sec: the number of seconds it takes this subscriber to
-        connect to a publisher when using a direct broker. Optional. Default is .5 seconds
+            connect to a publisher when using a direct broker. Optional. Default is .5 seconds
         """
         self.conn_sec = conn_sec
         self.address = address
@@ -63,6 +63,7 @@ class Subscriber:
         # the message_sub_bound flag
         self.publisher_sub.bind(self.address)
         self.message_sub_bound = False
+        self.publisher_sub_ready = False
 
         # move this bind
         # Because either this socket or the publisher registration notification
@@ -86,12 +87,11 @@ class Subscriber:
 
     def register(self, topic):
         """ Registers a topic and address with the broker
-
-        Registering a topic tells the broker to send messages about `topic` to this
+        Registering a topic tells the broker to send messages about the `topic` to this
         subscriber. This method must be called before any messages about the topic
         will be received.
 
-        :param topic: a string topic
+        :param str topic: A string topic
         """
         APP_LOGGER.info(f"Subscriber registering to topic {topic} at address {self.address}")
 
@@ -127,11 +127,9 @@ class Subscriber:
             # Ensure that publisher_sub is receiving new publishers
             # before we get the list of existing publishers otherwise
             # we could miss a publisher registration
-            sleep(self.conn_sec)
-
-            self.registration.send_string(pubsub.REQ_PUB, flags=zmq.SNDMORE)
-            self.registration.send_string(topic, flags=zmq.SNDMORE)
-            self.registration.send_string(self.address)
+            if not self.publisher_sub_ready:
+                sleep(self.conn_sec)
+                self.publisher_sub_ready = True
 
             has_addresses = self.registration.recv()
             if has_addresses == b'\x01':
@@ -142,12 +140,11 @@ class Subscriber:
         APP_LOGGER.info(f"Connected to {broker_type} broker")
 
     def unregister(self, topic):
-        """ Unregisters a topic and address
+        """ Unregisters a `topic` and address
 
-        Unregistering a topic prevents the subscriber from receiving any
-        further notifications about topic.
+        Unregistering a `topic` prevents the subscriber from receiving any further notifications about `topic`.
 
-        :param topic: a string topic that has been registered
+        :param str topic: a string topic that has been registered
         """
         if topic not in self.topics:
             raise TopicNotRegisteredError(topic, self.address, "Topic has not been registered with subscriber. Cannot "

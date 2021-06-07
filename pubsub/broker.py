@@ -50,8 +50,6 @@ class AbstractBroker(ABC):
             self.process_pub_registration(topic, address)
         elif reg_type == pubsub.REG_SUB:
             self.process_sub_registration(topic, address)
-        elif reg_type == pubsub.REQ_PUB:
-            self.process_publisher_request(topic)
         else:
             APP_LOGGER.warning(f"Received registration message with unknown type: {reg_type}")
 
@@ -61,10 +59,6 @@ class AbstractBroker(ABC):
 
     @abstractmethod
     def process_sub_registration(self, topic, address):
-        pass
-
-    @abstractmethod
-    def process_publisher_request(self, topic):
         pass
 
 
@@ -83,14 +77,13 @@ class RoutingBroker(AbstractBroker):
 
     There is a method to process each of these events that must be run in
     loops in threads
-
     """
 
     def __init__(self, registration_address):
         """ Creates a routing broker instance
 
-        :param registration_address: the address to use by this broker for publishers
-        and subscribers to register with. Format: <scheme>://<ip_addr>:<port>
+        :param str registration_address: the address to use by this broker for publishers
+            and subscribers to register with Format: <scheme>://<ip_addr>:<port>
         """
         super().__init__(registration_address)
         self.message_in = self.context.socket(zmq.SUB)
@@ -109,65 +102,98 @@ class RoutingBroker(AbstractBroker):
         self.message_out.send_multipart(message)
 
     def process_pub_registration(self, topic, address):
-        # Connect address to message receiving socket and
-        # subscribe to topic
+        """
+        Connect publisher address to message receiving socket and subscribe to topic.
+        A reply is then sent to the publisher with the type of the broker configuration.
+
+        :param str topic: A string containing a topic the publisher will publish.
+        :param str address: The publishers address Format: <scheme>://<ip_addr>:<port>
+        """
         self.message_in.connect(address)
         self.message_in.setsockopt_string(zmq.SUBSCRIBE, topic)
 
-        # Complete registration with reply containing broker type
         self.registration.send_string(BrokerType.ROUTE)
         APP_LOGGER.debug(f"Connected to publisher at {address} for topic \"{topic}\"")
 
     def process_sub_registration(self, topic, address):
-        # Connect the message sending socket to the new
-        # subscriber
+        """
+        Connect the message sending socket to the new subscriber and
+        reply to the subscriber with the type of the broker configuration.
+
+        :param str topic: A string containing a registration topic from the subscriber.
+        :param str address: The subscribers address Format: <scheme>://<ip_addr>:<port>
+        """
         self.message_out.connect(address)
 
-        # Complete registration with reply containing broker type
         self.registration.send_string(BrokerType.ROUTE)
         logging.debug(f"Connected to subscriber at \"{address}\"")
 
-    def process_publisher_request(self, topic):
-        pass
-
 
 class DirectBroker(AbstractBroker):
+    """ Direct Broker implementation handles creating a record of publishers
+    for each topic. This enables subscribers to create a direct connection to all of
+    the publishers for which they choose to subscribe.
 
+    The Direct Broker contains the following socket:
+    - A socket that publishes received publisher registration to all subscribers.
+
+    (This is in addition to the registration socket in the super class)
+
+    The Direct Broker contains a registration dictionary that keeps a
+    record of all topics with a list of all publishers addresses for that topic.
+
+    There are two key events that happen that this broker must respond to
+    - Registration messages from publishers and those from subscribers
+
+    There is a method to process each of these events that must be run in
+    loops in threads
+
+    """
     def __init__(self, registration_address):
-        # call super class constructor
+        """ Creates a direct broker instance with a dictionary to record all
+        registered topics and a list of the publisher's for each topic. A socket
+        is then created to publish newly registered publishers to the existing subscribers.
+
+        :param str registration_address: the address to use by this broker for publishers
+            and subscribers to register. Format: <scheme>://<ip_addr>:<port>
+        """
         super().__init__(registration_address)
 
-        # add data structure that maps a topic to a list of
-        # publisher addresses publishing on that topic
         self.registry = defaultdict(list)
 
-        # add socket that can publish newly registered publishers
-        # to registered subscribers
         self.message_out = self.context.socket(zmq.PUB)
         APP_LOGGER.info(f"Created direct broker at {registration_address}")
 
     def process_pub_registration(self, topic, address):
-        # add publisher to map of topics to addresses
+        """
+        Adds the publisher to the brokers registry table and then sends
+        the publisher's topic and address to all subscribers. The broker then
+        sends a reply to the publisher with the broker's type(DIRECT).
+
+        :param str topic: A string containing a topic the publisher will publish.
+        :param str address: The publishers address Format: <scheme>://<ip_addr>:<port>
+        """
         encoded_address = address.encode('utf-8')
         self.registry[topic].append(encoded_address)
 
-        # publish topic and address of new publisher to subscribers
         self.message_out.send_string(topic, flags=zmq.SNDMORE)
         self.message_out.send_string(address)
 
-        # Send broker type reply
         self.registration.send_string(BrokerType.DIRECT)
 
     def process_sub_registration(self, topic, address):
-        # connect subscriber address to socket that publishes new
-        # publisher connection information
+        """
+        Creates a connection to the subscriber that will publish new
+        publisher registration information. The broker then sends a reply
+        to the publisher with the broker's type(DIRECT) and if present,
+        a list of addresses for that `topic`.
+
+        :param str topic: A string containing the topic a subscriber is registering.
+        :param str address: The publishers address Format: <scheme>://<ip_addr>:<port>
+        """
         self.message_out.connect(address)
 
-        # send multipart message with broker type, number of addresses
-        # being sent, and a list of addresses
-        self.registration.send_string(BrokerType.DIRECT)
-
-    def process_publisher_request(self, topic):
+        self.registration.send_string(BrokerType.DIRECT, zmq.SNDMORE)
         has_addresses = b'\x00' if len(self.registry[topic]) == 0 else b'\x01'
         messages = [has_addresses] + self.registry[topic]
 

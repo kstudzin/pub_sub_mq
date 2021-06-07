@@ -11,8 +11,8 @@ from pubsub.publisher import Publisher
 from pubsub.util import MessageType, TopicNotRegisteredError
 
 ctx = zmq.Context()
-pub_address = "tcp://127.0.0.1:5557"
-broker_address = "tcp://127.0.0.1:5558"
+PUB_ADDRESS = "tcp://127.0.0.1:2557"
+BROKER_ADDRESS = "tcp://127.0.0.1:2558"
 
 executor = ThreadPoolExecutor(max_workers=2)
 
@@ -22,14 +22,14 @@ class TestPublisher:
     @pytest.fixture(scope="module")
     def reply(self):
         reply = ctx.socket(zmq.REP)
-        reply.bind(broker_address)
+        reply.bind(BROKER_ADDRESS)
         yield reply
-        reply.unbind(broker_address)
+        reply.unbind(BROKER_ADDRESS)
 
     def test_constructor(self):
         logging.debug("testing constructor")
-        publisher = Publisher(pub_address, broker_address)
-        assert publisher.address == pub_address
+        publisher = Publisher(PUB_ADDRESS, BROKER_ADDRESS)
+        assert publisher.address == PUB_ADDRESS
         assert publisher.message_pub is not None
         assert publisher.registration is not None
 
@@ -46,18 +46,18 @@ class TestPublisher:
         future = executor.submit(self.broker_recv_reg, reply)
 
         topic = "the topic name"
-        publisher = Publisher(pub_address, broker_address)
+        publisher = Publisher(PUB_ADDRESS, BROKER_ADDRESS)
         publisher.register(topic)
 
         result = future.result(60)
         assert result[0] == REG_PUB
         assert result[1] == topic
-        assert result[2] == pub_address
+        assert result[2] == PUB_ADDRESS
 
     @pytest.fixture()
     def broker_sub(self):
         sub = ctx.socket(zmq.SUB)
-        sub.connect(pub_address)
+        sub.connect(PUB_ADDRESS)
         sub.setsockopt_string(zmq.SUBSCRIBE, "the topic name")
         return executor.submit(self.broker_msg_recv, sub)
 
@@ -75,7 +75,7 @@ class TestPublisher:
     def test_publish(self, broker_sub):
         topic = "the topic name"
         message = "message here"
-        publisher = Publisher(pub_address, broker_address)
+        publisher = Publisher(PUB_ADDRESS, BROKER_ADDRESS)
         publisher.topics.append(topic)
         sleep(.5)
         publisher.publish(topic, message)
@@ -90,7 +90,7 @@ class TestPublisher:
     def test_publish_pyobj(self, broker_sub):
         topic = "the topic name"
         message = Person("Harry Potter", 41)
-        publisher = Publisher(pub_address, broker_address)
+        publisher = Publisher(PUB_ADDRESS, BROKER_ADDRESS)
         publisher.topics.append(topic)
         sleep(.5)
         publisher.publish(topic, message, MessageType.PYOBJ)
@@ -104,7 +104,7 @@ class TestPublisher:
         with pytest.raises(TopicNotRegisteredError) as err:
             topic = "the topic name"
             message = "message here"
-            publisher = Publisher(pub_address, broker_address)
+            publisher = Publisher(PUB_ADDRESS, BROKER_ADDRESS)
             publisher.publish(topic, message)
         assert "Topic has not been registered with publisher" in str(err.value)
 
