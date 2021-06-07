@@ -29,9 +29,9 @@ In the case of the routing broker, the subscriber will inform the broker of its 
 In the direct broker scenario, the subscriber establishes connections directly with each of publishers that they have subscribed. By doing so the amount of traffic that the subscriber will receive will be greatly reduced and no filtering is required by the subscriber.
 
 #### How (to use)
-[See Command Line Interface(CLI) Usage below](COMMAND-LINE-INTERFACE-USAGE)
+[See Command Line Interface(CLI) Usage below](#command-line-interface-usage)
 
-[See Application Programming Interface(API) Usage below](APPLICATION-PROGRAMMING-INTERFACE(API))
+[See Application Programming Interface(API) Usage below](#application-programming-interfaceapi)
 
 <hr>
 
