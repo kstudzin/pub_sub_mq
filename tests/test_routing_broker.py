@@ -10,9 +10,9 @@ from pubsub import REG_PUB, REG_SUB
 from pubsub.broker import RoutingBroker, BrokerType
 
 ctx = zmq.Context()
-broker_address = "tcp://127.0.0.1:5554"
-address1 = "tcp://127.0.0.1:5560"
-address2 = "tcp://127.0.0.1:5561"
+BROKER_ADDRESS = "tcp://127.0.0.1:3554"
+SUB_ADDRESS = "tcp://127.0.0.1:3560"
+PUB_ADDRESS = "tcp://127.0.0.1:3561"
 
 executor = ThreadPoolExecutor(max_workers=2)
 
@@ -22,19 +22,19 @@ class TestRoutingBroker:
     @pytest.fixture(scope="module")
     def publisher(self):
         pub = ctx.socket(zmq.PUB)
-        pub.bind(address2)
+        pub.bind(PUB_ADDRESS)
         yield pub
-        pub.unbind(address2)
+        pub.unbind(PUB_ADDRESS)
 
     @pytest.fixture(scope="module")
     def subscriber(self):
         sub = ctx.socket(zmq.SUB)
-        sub.bind(address1)
+        sub.bind(SUB_ADDRESS)
         yield sub
-        sub.unbind(address1)
+        sub.unbind(SUB_ADDRESS)
 
     def test_constructor(self):
-        broker = RoutingBroker(broker_address)
+        broker = RoutingBroker(BROKER_ADDRESS)
         assert broker.message_in is not None
         assert broker.message_out is not None
 
@@ -46,15 +46,15 @@ class TestRoutingBroker:
     def test_process_pub_registration(self, publisher):
         logging.info("Simulate registering publisher with broker")
 
-        broker = RoutingBroker(broker_address)
+        broker = RoutingBroker(BROKER_ADDRESS)
         executor.submit(broker.process_registration)
 
         req = ctx.socket(zmq.REQ)
-        req.connect(broker_address)
+        req.connect(BROKER_ADDRESS)
 
         req.send_string(REG_PUB, flags=zmq.SNDMORE)
         req.send_string("topic here", flags=zmq.SNDMORE)
-        req.send_string(address2)
+        req.send_string(PUB_ADDRESS)
 
         broker_type = req.recv_string()
         assert broker_type == BrokerType.ROUTE
@@ -78,15 +78,15 @@ class TestRoutingBroker:
     def test_process_sub_registration(self, subscriber):
         logging.info("Simulate registering publisher with broker")
 
-        broker = RoutingBroker(broker_address)
+        broker = RoutingBroker(BROKER_ADDRESS)
         executor.submit(broker.process_registration)
 
         req = ctx.socket(zmq.REQ)
-        req.connect(broker_address)
+        req.connect(BROKER_ADDRESS)
 
         req.send_string(REG_SUB, flags=zmq.SNDMORE)
         req.send_string("topic here", flags=zmq.SNDMORE)
-        req.send_string(address1)
+        req.send_string(SUB_ADDRESS)
 
         broker_type = req.recv_string()
         assert broker_type == BrokerType.ROUTE
@@ -109,17 +109,17 @@ class TestRoutingBroker:
     def test_process_message(self, publisher, subscriber):
         topic = "topic here"
 
-        broker = RoutingBroker(broker_address)
+        broker = RoutingBroker(BROKER_ADDRESS)
 
         logging.info("Register subscriber")
         executor.submit(broker.process_registration)
 
         req = ctx.socket(zmq.REQ)
-        req.connect(broker_address)
+        req.connect(BROKER_ADDRESS)
 
         req.send_string(REG_SUB, flags=zmq.SNDMORE)
         req.send_string(topic, flags=zmq.SNDMORE)
-        req.send_string(address1)
+        req.send_string(SUB_ADDRESS)
 
         broker_type = req.recv_string()
         assert broker_type == BrokerType.ROUTE
@@ -129,7 +129,7 @@ class TestRoutingBroker:
 
         req.send_string(REG_PUB, flags=zmq.SNDMORE)
         req.send_string(topic, flags=zmq.SNDMORE)
-        req.send_string(address2)
+        req.send_string(PUB_ADDRESS)
 
         broker_type = req.recv_string()
         assert broker_type == BrokerType.ROUTE
