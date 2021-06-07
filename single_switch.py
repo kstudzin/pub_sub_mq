@@ -10,9 +10,9 @@ from mininet.log import setLogLevel
 
 address_format = "tcp://{0}:{1}"
 default_port = "5555"
-broker_cmd = "python psserver.py --address {0} --port {1} --type {2}"
-publisher_cmd = "python ps_publisher.py {0} {1} --topics lorem -r 1000"
-subscriber_cmd = "python ps_publisher.py {0} {1} --topics lorem "
+broker_cmd_fmt = "python psserver.py --address {0} --port {1} --type {2} &"
+publisher_cmd_fmt = "python ps_publisher.py {0} {1} --topics lorem -r 1000"
+subscriber_cmd_fmt = "python ps_subscriber.py {0} {1} --topics lorem -e"
 
 
 class SingleSwitchTopo(Topo):
@@ -43,24 +43,30 @@ def simple_test():
     publisher = hosts[1]
     subscriber = hosts[2]
 
-    broker.sendCmd('echo hello > broker.log')
-    subscriber.sendCmd('echo hello > sub.log')
-    publisher.cmd('date > pub.log; sleep 5; date >> pub.log')
+    broker_address = address_format.format(broker.IP(), default_port)
+
+    broker_cmd = broker_cmd_fmt.format(broker.IP(), default_port, 'r')
+    print(f"Running {broker_cmd}")
+    broker.cmd(broker_cmd)
+
+    subscriber_cmd = subscriber_cmd_fmt.format(
+        address_format.format(subscriber.IP(), default_port),
+        broker_address
+    )
+    print(f"Running {subscriber_cmd}")
+    subscriber.sendCmd(subscriber_cmd)
+    sleep(0.5)
+
+    publisher_cmd = publisher_cmd_fmt.format(
+        address_format.format(publisher.IP(), default_port),
+        broker_address
+        )
+    print(f"Running {publisher_cmd}")
+    publisher.cmd(publisher_cmd)
 
     print(f"Subscriber output: {subscriber.waitOutput()}")
-    print(f"Broker output: {broker.waitOutput()}")
+    broker.cmd(f"kill %1")
 
-    # broker_address = address_format.format(broker.IP, default_port)
-    # broker.cmd(broker_cmd.format(broker.IP, default_port, 'r'))
-    # publisher.cmd(publisher_cmd.format(
-    #     address_format.format(publisher.IP, default_port),
-    #     broker_address
-    #     ))
-    # sleep(.05)
-    # subscriber.cmd(subscriber_cmd.format(
-    #     address_format.format(subscriber.IP, default_port),
-    #     broker_address
-    # ))
     # CLI(net)
 
     net.stop()
