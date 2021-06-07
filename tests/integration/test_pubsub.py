@@ -67,7 +67,7 @@ def test_publish_direct():
     nl.clear()
 
     broker = DirectBroker(broker_address)
-    executor.submit(wait_loop, broker.process_registration, 3)
+    executor.submit(wait_loop, broker.process_registration, 2)
 
     logging.info("setting up subscriber")
     sub = Subscriber(sub_address, broker_address)
@@ -138,7 +138,7 @@ def test_publish_first_direct():
 
     broker = DirectBroker(broker_address)
     sleep(.5)
-    executor.submit(wait_loop, broker.process_registration, 3)
+    executor.submit(wait_loop, broker.process_registration, 2)
 
     logging.info("setting up publisher")
     pub = Publisher(pub_address, broker_address)
