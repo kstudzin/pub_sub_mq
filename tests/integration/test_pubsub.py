@@ -65,7 +65,7 @@ def test_publish_direct():
     nl.clear()
 
     broker = DirectBroker("tcp://127.0.0.1:5565")
-    executor.submit(wait_loop, broker.process_registration, 3)
+    executor.submit(wait_loop, broker.process_registration, 2)
 
     logging.info("setting up subscriber")
     sub = Subscriber(sub_address, "tcp://127.0.0.1:5565")
@@ -128,15 +128,15 @@ def test_publish_first_direct():
     num_msg = 100
     nl.clear()
 
-    broker = DirectBroker("tcp://127.0.0.1:5565")
-    executor.submit(wait_loop, broker.process_registration, 3)
+    broker = DirectBroker("tcp://127.0.0.1:5465")
+    executor.submit(wait_loop, broker.process_registration, 2)
 
     logging.info("setting up publisher")
-    pub = Publisher(pub_address, "tcp://127.0.0.1:5565")
+    pub = Publisher(pub_address, "tcp://127.0.0.1:5465")
     pub.register(topic)
 
     logging.info("setting up subscriber")
-    sub = Subscriber(sub_address, "tcp://127.0.0.1:5565")
+    sub = Subscriber(sub_address, "tcp://127.0.0.1:5465")
     future = executor.submit(wait_loop, sub.wait_for_msg, num_msg)
 
     sub.register_callback(add_number)
