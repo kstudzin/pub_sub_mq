@@ -16,6 +16,12 @@ default_port = "5555"
 broker_cmd_fmt = "python psserver.py --address {0} --port {1} --type {2} &"
 publisher_cmd_fmt = "python ps_publisher.py {0} {1} --topics lorem -r 1000"
 subscriber_cmd_fmt = "python ps_subscriber.py {0} {1} --topics lorem -e {2}"
+output_dir = "latency"
+perf_logs = "pubsub_perf.log"
+banner = "\n" \
+         "+-------------------------------------------------\n" \
+         "| Running test with {0} subscribers and {1} broker\n" \
+         "+-------------------------------------------------\n"
 
 
 class SingleSwitchTopo(Topo):
@@ -72,7 +78,7 @@ def run_iteration(num_subs, broker_type):
         )
         print(f"Running {subscriber_cmd}")
         subscriber.sendCmd(subscriber_cmd)
-    sleep(5)
+    sleep(.5)
 
     # Run the publisher process
     publisher_cmd = publisher_cmd_fmt.format(
@@ -98,17 +104,18 @@ def main():
     args = arg_parser.parse_args()
     max_subs = args.subscribers
 
-    if not os.path.exists('latency'):
-        os.mkdir('latency')
-    filename_fmt = "latency/sub-{0}_broker-{1}.log"
+    shutil.rmtree(output_dir, ignore_errors=True)
+    os.mkdir(output_dir)
+    filename_fmt = "sub-{0}_broker-{1}.log"
 
     curr_sub = 1
     while curr_sub <= max_subs:
         for broker_type in ['r', 'd']:
-            print(f"Running test with {curr_sub} subscribers and {broker_type} broker")
+            print(banner.format(curr_sub, broker_type))
             run_iteration(curr_sub, broker_type)
 
-            shutil.move('message_logfile.log', filename_fmt.format(curr_sub, broker_type))
+            filename = filename_fmt.format(curr_sub, broker_type)
+            shutil.move(perf_logs, os.path.join(output_dir, filename))
         curr_sub *= 2
 
 
