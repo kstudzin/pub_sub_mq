@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 source = "latency"
 filename_pattern = re.compile(".*(sub-(\\d+)_broker-([rd])).*")
-output_plot = "boxplot.png"
+output_plot = "boxplot.svg"
 output_stat = "boxplot.txt"
 
 
@@ -36,7 +36,7 @@ def main():
     boxplot = df.boxplot(column=cols, return_type='axes')
     boxplot.set_xlabel("Test Run (<number subscribers>_<routing|direct>)")
     boxplot.set_ylabel("Time (seconds)")
-    plt.savefig(output_plot, format="png")
+    plt.savefig(output_plot, format="svg")
     print(f"Generated plot: {output_plot}")
 
     mode_df = pd.DataFrame()
