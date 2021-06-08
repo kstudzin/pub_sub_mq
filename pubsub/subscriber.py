@@ -177,11 +177,14 @@ class Subscriber:
         notify the application code.
         """
         topic = self.message_sub.recv_string()
-        time_out = datetime.strptime(self.message_sub.recv_string(), StringFormat.TIME)
+        time_published = self.message_sub.recv_string()
         message_type = self.message_sub.recv_string()
         message = self.type2receiver[message_type]()
+
+        time_out = datetime.strptime(time_published, StringFormat.TIME)
         time_in = datetime.utcnow()
         delta_time = time_in - time_out
+
         time_in_str = time_in.strftime(StringFormat.TIME)
         MESSAGE_LOGGER.info(f"{delta_time}, {time_in_str}, {len(topic)}, {len(message)}")
         self.notify(topic, message)

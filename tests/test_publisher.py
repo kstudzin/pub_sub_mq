@@ -15,6 +15,7 @@ PUB_ADDRESS = "tcp://127.0.0.1:2557"
 BROKER_ADDRESS = "tcp://127.0.0.1:2558"
 
 executor = ThreadPoolExecutor(max_workers=2)
+time_stamp_regex = re.compile(r'\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}')
 
 
 class TestPublisher:
@@ -82,7 +83,6 @@ class TestPublisher:
 
         result = broker_sub.result(60)
         assert result[0] == topic
-        time_stamp_regex = re.compile(r'\d{2}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}')  #"%m/%d/%Y %H:%M:%S"
         assert time_stamp_regex.match(result[1])
         assert result[2] == MessageType.STRING
         assert result[3] == message
@@ -97,8 +97,9 @@ class TestPublisher:
 
         result = broker_sub.result(60)
         assert result[0] == topic
-        assert result[1] == MessageType.PYOBJ
-        assert result[2] == message
+        assert time_stamp_regex.match(result[1])
+        assert result[2] == MessageType.PYOBJ
+        assert result[3] == message
 
     def test_publish(self):
         with pytest.raises(TopicNotRegisteredError) as err:

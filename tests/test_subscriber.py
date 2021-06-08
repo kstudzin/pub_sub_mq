@@ -1,5 +1,6 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from time import sleep
 
 import pytest
@@ -8,7 +9,7 @@ import zmq
 from pubsub import REG_SUB
 from pubsub.broker import BrokerType
 from pubsub.subscriber import Subscriber
-from pubsub.util import MessageType
+from pubsub.util import MessageType, StringFormat
 
 ctx = zmq.Context()
 SUB_ADDRESS = "tcp://127.0.0.1:4556"
@@ -79,6 +80,7 @@ class TestSubscriber:
         sleep(1)
 
         pub.send_string(topic, flags=zmq.SNDMORE)
+        pub.send_string(datetime.utcnow().strftime(StringFormat.TIME), flags=zmq.SNDMORE)
         pub.send_string(MessageType.STRING, flags=zmq.SNDMORE)
         pub.send_string(message)
 
