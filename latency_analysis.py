@@ -16,8 +16,10 @@ def import_data():
     names = []
     for file in os.listdir(source):
         match = filename_pattern.match(file)
-        name = "{0:03}_{1}".format(int(match.group(2)), match.group(3))
-        df_curr = pd.read_csv(os.path.join(source, file), header=None, usecols=[0], names=[name])
+        num_subs = int(match.group(2))
+        rows = num_subs * 1000
+        name = "{0:03}_{1}".format(num_subs, match.group(3))
+        df_curr = pd.read_csv(os.path.join(source, file), header=None, usecols=[0], names=[name], nrows=rows)
         df[name] = df_curr[name]
         names.append(name)
 
@@ -28,7 +30,6 @@ def import_data():
 def main():
     print("Analyzing...")
     df, cols = import_data()
-    df.sort_index(axis=1)
 
     plt.figure()
     plt.title("PubSub Latency")
@@ -41,11 +42,14 @@ def main():
     mode_df = pd.DataFrame()
     for name in cols:
         mode_df[name] = df[name].mode()
-    mode_df.index = ['mode']
 
+    df.sort_index(axis=1)
     print(f"Statistics:  {output_stat}")
     f = open(output_stat, "w")
-    f.write(df.describe().append(mode_df, sort=True).to_string())
+    f.write("Statistics:\n\n")
+    f.write(df.describe().sort_index(axis=1).to_string())
+    f.write("\n\nMode:\n\n")
+    f.write(mode_df.to_string())
     f.close()
 
 
