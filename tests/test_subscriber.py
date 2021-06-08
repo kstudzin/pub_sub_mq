@@ -1,5 +1,6 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from time import sleep
 
 import pytest
@@ -8,11 +9,11 @@ import zmq
 from pubsub import REG_SUB
 from pubsub.broker import BrokerType
 from pubsub.subscriber import Subscriber
-from pubsub.util import MessageType
+from pubsub.util import MessageType, StringFormat
 
 ctx = zmq.Context()
-sub_address = "tcp://127.0.0.1:5556"
-broker_address = "tcp://127.0.0.1:5555"
+SUB_ADDRESS = "tcp://127.0.0.1:4556"
+BROKER_ADDRESS = "tcp://127.0.0.1:4555"
 
 executor = ThreadPoolExecutor(max_workers=2)
 
@@ -22,15 +23,15 @@ class TestSubscriber:
     @pytest.fixture(scope="module")
     def reply(self):
         reply = ctx.socket(zmq.REP)
-        reply.bind(broker_address)
+        reply.bind(BROKER_ADDRESS)
         yield reply
-        reply.unbind(broker_address)
+        reply.unbind(BROKER_ADDRESS)
 
     notifications = []
 
     def test_constructor(self):
-        subscriber = Subscriber(sub_address, broker_address)
-        assert subscriber.address == sub_address
+        subscriber = Subscriber(SUB_ADDRESS, BROKER_ADDRESS)
+        assert subscriber.address == SUB_ADDRESS
         assert subscriber.callback is not None
         assert subscriber.message_sub is not None
         assert subscriber.registration is not None
@@ -47,13 +48,13 @@ class TestSubscriber:
         future = executor.submit(self.broker_recv_reg, reply)
 
         topic = "the topic name"
-        subscriber = Subscriber(sub_address, broker_address)
+        subscriber = Subscriber(SUB_ADDRESS, BROKER_ADDRESS)
         subscriber.register(topic)
 
         result = future.result(60)
         assert result[0] == REG_SUB
         assert result[1] == topic
-        assert result[2] == sub_address
+        assert result[2] == SUB_ADDRESS
 
     def callback(self, topic, message):
         self.notifications.append(Notification(topic, message))
@@ -61,7 +62,7 @@ class TestSubscriber:
     def test_receive_message(self, reply):
         reg_future = executor.submit(self.broker_recv_reg, reply)
 
-        subscriber = Subscriber(sub_address, broker_address)
+        subscriber = Subscriber(SUB_ADDRESS, BROKER_ADDRESS)
         subscriber.register("the topic name")
         subscriber.register_callback(self.callback)
         notify_future = executor.submit(subscriber.wait_for_msg)
@@ -72,13 +73,14 @@ class TestSubscriber:
         result = reg_future.result(60)
         assert result[0] == REG_SUB
         assert result[1] == topic
-        assert result[2] == sub_address
+        assert result[2] == SUB_ADDRESS
 
         pub = ctx.socket(zmq.PUB)
-        pub.connect(sub_address)
+        pub.connect(SUB_ADDRESS)
         sleep(1)
 
         pub.send_string(topic, flags=zmq.SNDMORE)
+        pub.send_string(datetime.utcnow().strftime(StringFormat.TIME), flags=zmq.SNDMORE)
         pub.send_string(MessageType.STRING, flags=zmq.SNDMORE)
         pub.send_string(message)
 
