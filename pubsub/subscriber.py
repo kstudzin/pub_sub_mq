@@ -1,11 +1,11 @@
-from datetime import datetime
+import struct
+import time
 from time import sleep
-
 import zmq
 import pubsub
-from pubsub import APP_LOGGER, MESSAGE_LOGGER
+from pubsub import PERF_LOGGER, LOGGER
 from pubsub.broker import BrokerType
-from pubsub.util import MessageType, TopicNotRegisteredError, StringFormat
+from pubsub.util import MessageType, TopicNotRegisteredError
 
 
 def printing_callback(topic, message):
@@ -19,8 +19,8 @@ class Subscriber:
     when it receives messages on registered topics.
 
     Sample usage:
-    subscriber = Subscriber("http://127.0.0.1:5557", "http://127.0.0.1:5555")
-    subscriber.register("topic1")
+    subscriber = Subscriber("http://127.0.0.1:5555"")
+    subscriber.register("topic1", "http://127.0.0.1:5557")
     subscriber.register_callback(callback_name)
     subscriber.wait_for_msg()
 
@@ -33,11 +33,11 @@ class Subscriber:
         """Creates a subscriber instance
 
         :param address: the address of this subscriber. String with
-            format <scheme>://<ip_addr>:<port>
+        format <scheme>://<ip_addr>:<port>
         :param registration_address: address of the broker with which this publisher
-            registers topics. String with format <scheme>://<ip_addr>:<port>
+        registers topics. String with format <scheme>://<ip_addr>:<port>
         :param conn_sec: the number of seconds it takes this subscriber to
-            connect to a publisher when using a direct broker. Optional. Default is .5 seconds
+        connect to a publisher when using a direct broker. Optional. Default is .5 seconds
         """
         self.conn_sec = conn_sec
         self.address = address
@@ -83,17 +83,18 @@ class Subscriber:
                               MessageType.PYOBJ: self.message_sub.recv_pyobj,
                               MessageType.JSON: self.message_sub.recv_json}
 
-        APP_LOGGER.info(f"Bound to {address}. Registering with broker at {registration_address}.")
+        LOGGER.info(f"Bound to {address}. Registering with broker at {registration_address}.")
 
     def register(self, topic):
         """ Registers a topic and address with the broker
-        Registering a topic tells the broker to send messages about the `topic` to this
+
+        Registering a topic tells the broker to send messages about `topic` to this
         subscriber. This method must be called before any messages about the topic
         will be received.
 
-        :param str topic: A string topic
+        :param topic: a string topic
         """
-        APP_LOGGER.info(f"Subscriber registering to topic {topic} at address {self.address}")
+        LOGGER.info(f"Subscriber registering to topic {topic} at address {self.address}")
 
         self.topics.append(topic)
 
@@ -120,6 +121,7 @@ class Subscriber:
         if broker_type == BrokerType.ROUTE:
             if not self.message_sub_bound:
                 self.publisher_sub.unbind(self.address)
+                sleep(.5)
                 self.message_sub.bind(self.address)
                 self.message_sub_bound = True
         elif broker_type == BrokerType.DIRECT:
@@ -137,14 +139,15 @@ class Subscriber:
                 for address in addresses:
                     self.message_sub.connect(address.decode('utf-8'))
 
-        APP_LOGGER.info(f"Connected to {broker_type} broker")
+        LOGGER.info(f"Connected to {broker_type} broker")
 
     def unregister(self, topic):
-        """ Unregisters a `topic` and address
+        """ Unregisters a topic and address
 
-        Unregistering a `topic` prevents the subscriber from receiving any further notifications about `topic`.
+        Unregistering a topic prevents the subscriber from receiving any
+        further notifications about topic.
 
-        :param str topic: a string topic that has been registered
+        :param topic: a string topic that has been registered
         """
         if topic not in self.topics:
             raise TopicNotRegisteredError(topic, self.address, "Topic has not been registered with subscriber. Cannot "
@@ -177,16 +180,15 @@ class Subscriber:
         notify the application code.
         """
         topic = self.message_sub.recv_string()
-        time_published = self.message_sub.recv_string()
+        time_published = self.message_sub.recv()
         message_type = self.message_sub.recv_string()
         message = self.type2receiver[message_type]()
 
-        time_out = datetime.strptime(time_published, StringFormat.TIME)
-        time_in = datetime.utcnow()
-        delta_time = time_in - time_out
+        time_sent = struct.unpack('d', time_published)[0]
+        time_recv = time.time()
+        delta_time = time_recv - time_sent
+        PERF_LOGGER.info(f"{delta_time}, {time_recv}, {len(topic)}, {len(message)}")
 
-        time_in_str = time_in.strftime(StringFormat.TIME)
-        MESSAGE_LOGGER.info(f"{delta_time}, {time_in_str}, {len(topic)}, {len(message)}")
         self.notify(topic, message)
 
     def register_callback(self, callback):

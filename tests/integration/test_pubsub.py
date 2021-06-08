@@ -8,6 +8,10 @@ from pubsub.broker import BrokerType, RoutingBroker, DirectBroker
 from pubsub.publisher import Publisher
 from pubsub.subscriber import Subscriber
 
+broker_address = "tcp://127.0.0.1:5562"
+sub_address = "tcp://127.0.0.1:5563"
+pub_address = "tcp://127.0.0.1:5564"
+
 executor = ThreadPoolExecutor(max_workers=3)
 
 
@@ -24,14 +28,11 @@ nl = []
 
 
 def test_publish_routing():
-    broker_address = "tcp://127.0.0.1:5510"
-    sub_address = "tcp://127.0.0.1:5520"
-    pub_address = "tcp://127.0.0.1:5530"
     topic = "numbers"
     num_msg = 100
     nl.clear()
 
-    broker = RoutingBroker(broker_address)
+    broker = RoutingBroker("tcp://127.0.0.1:5562")
     executor.submit(wait_loop, broker.process, num_msg)
     executor.submit(wait_loop, broker.process_registration, 2)
 
@@ -59,18 +60,15 @@ def test_publish_routing():
 
 
 def test_publish_direct():
-    broker_address = "tcp://127.0.0.1:5511"
-    sub_address = "tcp://127.0.0.1:5521"
-    pub_address = "tcp://127.0.0.1:5531"
     topic = "numbers"
     num_msg = 100
     nl.clear()
 
-    broker = DirectBroker(broker_address)
+    broker = DirectBroker("tcp://127.0.0.1:5565")
     executor.submit(wait_loop, broker.process_registration, 2)
 
     logging.info("setting up subscriber")
-    sub = Subscriber(sub_address, broker_address)
+    sub = Subscriber(sub_address, "tcp://127.0.0.1:5565")
     future = executor.submit(wait_loop, sub.wait_for_msg, num_msg)
     executor.submit(wait_loop, sub.wait_for_registration, 1)
 
@@ -78,7 +76,7 @@ def test_publish_direct():
     sub.register(topic)
 
     logging.info("setting up publisher")
-    pub = Publisher(pub_address, broker_address)
+    pub = Publisher(pub_address, "tcp://127.0.0.1:5565")
     pub.register(topic)
 
     sleep(.5)
@@ -94,14 +92,11 @@ def test_publish_direct():
 
 
 def test_publish_first_routing():
-    broker_address = "tcp://127.0.0.1:5512"
-    sub_address = "tcp://127.0.0.1:5522"
-    pub_address = "tcp://127.0.0.1:5532"
     topic = "numbers"
     num_msg = 100
     nl.clear()
 
-    broker = RoutingBroker(broker_address)
+    broker = RoutingBroker("tcp://127.0.0.1:5562")
     executor.submit(wait_loop, broker.process, num_msg)
     executor.submit(wait_loop, broker.process_registration, 2)
 
@@ -129,23 +124,19 @@ def test_publish_first_routing():
 
 
 def test_publish_first_direct():
-    broker_address = "tcp://127.0.0.1:5513"
-    sub_address = "tcp://127.0.0.1:5523"
-    pub_address = "tcp://127.0.0.1:5533"
     topic = "numbers"
     num_msg = 100
     nl.clear()
 
-    broker = DirectBroker(broker_address)
-    sleep(.5)
+    broker = DirectBroker("tcp://127.0.0.1:5465")
     executor.submit(wait_loop, broker.process_registration, 2)
 
     logging.info("setting up publisher")
-    pub = Publisher(pub_address, broker_address)
+    pub = Publisher(pub_address, "tcp://127.0.0.1:5465")
     pub.register(topic)
 
     logging.info("setting up subscriber")
-    sub = Subscriber(sub_address, broker_address)
+    sub = Subscriber(sub_address, "tcp://127.0.0.1:5465")
     future = executor.submit(wait_loop, sub.wait_for_msg, num_msg)
 
     sub.register_callback(add_number)
@@ -164,21 +155,17 @@ def test_publish_first_direct():
 
 
 def test_two_publishers():
-    broker_address = "tcp://127.0.0.1:5514"
-    sub_address = "tcp://127.0.0.1:5524"
-    pub_address = "tcp://127.0.0.1:5534"
-    pub2_address = "tcp://127.0.0.1:5535"
     topic = "numbers"
     topic2 = "other numbers"
-    num_msg = 10
+    num_msg = 100
     nl.clear()
 
-    broker = RoutingBroker(broker_address)
+    broker = RoutingBroker("tcp://127.0.0.1:5570")
     executor.submit(wait_loop, broker.process, num_msg * 2)
     executor.submit(wait_loop, broker.process_registration, 4)
 
     logging.info("setting up subscriber")
-    sub = Subscriber(sub_address, broker_address)
+    sub = Subscriber("tcp://127.0.0.1:5571", "tcp://127.0.0.1:5570")
     future = executor.submit(wait_loop, sub.wait_for_msg, num_msg * 2)
 
     sub.register_callback(add_number)
@@ -186,10 +173,10 @@ def test_two_publishers():
     sub.register(topic2)
 
     logging.info("setting up publisher")
-    pub1 = Publisher(pub_address, broker_address)
+    pub1 = Publisher("tcp://127.0.0.1:5572", "tcp://127.0.0.1:5570")
     pub1.register(topic)
 
-    pub2 = Publisher(pub2_address, broker_address)
+    pub2 = Publisher("tcp://127.0.0.1:5573", "tcp://127.0.0.1:5570")
     pub2.register(topic2)
 
     sleep(.5)

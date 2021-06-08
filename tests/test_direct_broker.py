@@ -10,9 +10,9 @@ from pubsub import REG_PUB, REG_SUB
 from pubsub.broker import DirectBroker, BrokerType
 
 ctx = zmq.Context()
-BROKER_ADDRESS = "tcp://127.0.0.1:1559"
-SUB_ADDRESS = "tcp://127.0.0.1:1560"
-PUB_ADDRESS = "tcp://127.0.0.1:1561"
+BROKER_ADDRESS = "tcp://127.0.0.1:5559"
+SUB_ADDRESS = "tcp://127.0.0.1:5560"
+PUB_ADDRESS = "tcp://127.0.0.1:5561"
 TOPIC = "topic here"
 MESSAGE = "message here"
 ENCODING = "utf-8"
@@ -85,6 +85,7 @@ class TestDirectBroker:
         assert len(message) == 2
         broker_type = message[0].decode(ENCODING)
         assert broker_type == BrokerType.DIRECT
+        assert message[1] == b'\x00'
 
         subscriber.setsockopt_string(zmq.SUBSCRIBE, TOPIC)
         future = executor.submit(self.wait_for_registration, subscriber)

@@ -1,5 +1,5 @@
 pytest.log
 pubsub.log
-application_logfile.log
-message_logfile.log
 htmlcov
+pubsub_perf.log
+latency

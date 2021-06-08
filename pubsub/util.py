@@ -1,12 +1,7 @@
-
 class MessageType:
     STRING = "STRING"
     PYOBJ = "PYOBJ"
     JSON = "JSON"
-
-
-class StringFormat:
-    TIME = "%m/%d/%Y %H:%M:%S"
 
 
 class TopicNotRegisteredError(Exception):

@@ -1,5 +1,8 @@
 import logging
+import os
 import re
+import struct
+import time
 from concurrent.futures import ThreadPoolExecutor
 from time import sleep
 
@@ -11,8 +14,8 @@ from pubsub.publisher import Publisher
 from pubsub.util import MessageType, TopicNotRegisteredError
 
 ctx = zmq.Context()
-PUB_ADDRESS = "tcp://127.0.0.1:2557"
-BROKER_ADDRESS = "tcp://127.0.0.1:2558"
+pub_address = "tcp://127.0.0.1:5557"
+broker_address = "tcp://127.0.0.1:5558"
 
 executor = ThreadPoolExecutor(max_workers=2)
 time_stamp_regex = re.compile(r'\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}')
@@ -23,14 +26,14 @@ class TestPublisher:
     @pytest.fixture(scope="module")
     def reply(self):
         reply = ctx.socket(zmq.REP)
-        reply.bind(BROKER_ADDRESS)
+        reply.bind(broker_address)
         yield reply
-        reply.unbind(BROKER_ADDRESS)
+        reply.unbind(broker_address)
 
     def test_constructor(self):
         logging.debug("testing constructor")
-        publisher = Publisher(PUB_ADDRESS, BROKER_ADDRESS)
-        assert publisher.address == PUB_ADDRESS
+        publisher = Publisher(pub_address, broker_address)
+        assert publisher.address == pub_address
         assert publisher.message_pub is not None
         assert publisher.registration is not None
 
@@ -47,18 +50,18 @@ class TestPublisher:
         future = executor.submit(self.broker_recv_reg, reply)
 
         topic = "the topic name"
-        publisher = Publisher(PUB_ADDRESS, BROKER_ADDRESS)
+        publisher = Publisher(pub_address, broker_address)
         publisher.register(topic)
 
         result = future.result(60)
         assert result[0] == REG_PUB
         assert result[1] == topic
-        assert result[2] == PUB_ADDRESS
+        assert result[2] == pub_address
 
     @pytest.fixture()
     def broker_sub(self):
         sub = ctx.socket(zmq.SUB)
-        sub.connect(PUB_ADDRESS)
+        sub.connect(pub_address)
         sub.setsockopt_string(zmq.SUBSCRIBE, "the topic name")
         return executor.submit(self.broker_msg_recv, sub)
 
@@ -68,7 +71,7 @@ class TestPublisher:
                          MessageType.JSON: socket.recv_json}
 
         topic = socket.recv_string()
-        time = socket.recv_string()
+        time = socket.recv()
         message_type = socket.recv_string()
         message = type2receiver[message_type]()
         return topic, time, message_type, message
@@ -76,7 +79,7 @@ class TestPublisher:
     def test_publish(self, broker_sub):
         topic = "the topic name"
         message = "message here"
-        publisher = Publisher(PUB_ADDRESS, BROKER_ADDRESS)
+        publisher = Publisher(pub_address, broker_address)
         publisher.topics.append(topic)
         sleep(.5)
         publisher.publish(topic, message)
@@ -90,14 +93,19 @@ class TestPublisher:
     def test_publish_pyobj(self, broker_sub):
         topic = "the topic name"
         message = Person("Harry Potter", 41)
-        publisher = Publisher(PUB_ADDRESS, BROKER_ADDRESS)
+        publisher = Publisher(pub_address, broker_address)
         publisher.topics.append(topic)
         sleep(.5)
         publisher.publish(topic, message, MessageType.PYOBJ)
 
+        min_sent = time.time() - 30
+        max_sent = time.time() + 30
+
         result = broker_sub.result(60)
         assert result[0] == topic
-        assert time_stamp_regex.match(result[1])
+        actual_time = struct.unpack('d', result[1])[0]
+        assert min_sent < actual_time
+        assert actual_time < max_sent
         assert result[2] == MessageType.PYOBJ
         assert result[3] == message
 
@@ -105,7 +113,7 @@ class TestPublisher:
         with pytest.raises(TopicNotRegisteredError) as err:
             topic = "the topic name"
             message = "message here"
-            publisher = Publisher(PUB_ADDRESS, BROKER_ADDRESS)
+            publisher = Publisher(pub_address, broker_address)
             publisher.publish(topic, message)
         assert "Topic has not been registered with publisher" in str(err.value)
 
