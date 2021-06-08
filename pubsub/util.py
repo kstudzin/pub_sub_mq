@@ -1,4 +1,3 @@
-
 class MessageType:
     STRING = "STRING"
     PYOBJ = "PYOBJ"
@@ -15,3 +14,6 @@ class TopicNotRegisteredError(Exception):
 
     def __str__(self):
         return f"{self.message} Topic: {self.topic} Address: {self.address}"
+
+
+TIME_FORMAT = "%m/%d/%Y %H:%M:%S"

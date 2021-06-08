@@ -1,11 +1,10 @@
-import logging
-from collections import defaultdict
+from datetime import datetime
 from time import sleep
-
 import zmq
 import pubsub
+from pubsub import PERF_LOGGER, LOGGER
 from pubsub.broker import BrokerType
-from pubsub.util import MessageType, TopicNotRegisteredError
+from pubsub.util import MessageType, TopicNotRegisteredError, TIME_FORMAT
 
 
 def printing_callback(topic, message):
@@ -83,7 +82,7 @@ class Subscriber:
                               MessageType.PYOBJ: self.message_sub.recv_pyobj,
                               MessageType.JSON: self.message_sub.recv_json}
 
-        logging.info(f"Bound to {address}. Registering with broker at {registration_address}.")
+        LOGGER.info(f"Bound to {address}. Registering with broker at {registration_address}.")
 
     def register(self, topic):
         """ Registers a topic and address with the broker
@@ -94,7 +93,7 @@ class Subscriber:
 
         :param topic: a string topic
         """
-        logging.info(f"Subscriber registering to topic {topic} at address {self.address}")
+        LOGGER.info(f"Subscriber registering to topic {topic} at address {self.address}")
 
         self.topics.append(topic)
 
@@ -139,7 +138,7 @@ class Subscriber:
                 for address in addresses:
                     self.message_sub.connect(address.decode('utf-8'))
 
-        logging.info(f"Connected to {broker_type} broker")
+        LOGGER.info(f"Connected to {broker_type} broker")
 
     def unregister(self, topic):
         """ Unregisters a topic and address
@@ -180,8 +179,16 @@ class Subscriber:
         notify the application code.
         """
         topic = self.message_sub.recv_string()
+        time_published = self.message_sub.recv_string()
         message_type = self.message_sub.recv_string()
         message = self.type2receiver[message_type]()
+
+        time_out = datetime.strptime(time_published, TIME_FORMAT)
+        time_in = datetime.utcnow()
+        delta_time = time_in - time_out
+        time_in_str = time_in.strftime(TIME_FORMAT)
+        PERF_LOGGER.info(f"{delta_time}, {time_in_str}, {len(topic)}, {len(message)}")
+
         self.notify(topic, message)
 
     def register_callback(self, callback):

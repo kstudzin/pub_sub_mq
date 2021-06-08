@@ -1,3 +1,4 @@
 pytest.log
 pubsub.log
 htmlcov
+pubsub_perf.log

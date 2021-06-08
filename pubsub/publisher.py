@@ -1,7 +1,9 @@
-import logging
+from datetime import datetime
+
 import zmq
 import pubsub
-from pubsub.util import MessageType, TopicNotRegisteredError
+from pubsub import LOGGER
+from pubsub.util import MessageType, TopicNotRegisteredError, TIME_FORMAT
 
 
 class Publisher:
@@ -36,7 +38,7 @@ class Publisher:
                             MessageType.PYOBJ: self.message_pub.send_pyobj,
                             MessageType.JSON: self.message_pub.send_json}
 
-        logging.info(f"Bound to {address}. Registering with broker at {registration_address}.")
+        LOGGER.info(f"Bound to {address}. Registering with broker at {registration_address}.")
 
     def register(self, topic):
         """ Register a topic and address with the broker
@@ -47,7 +49,7 @@ class Publisher:
 
         :param topic: a string topic
         """
-        logging.info(f"Publisher registering for topic {topic} at address {self.address}")
+        LOGGER.info(f"Publisher registering for topic {topic} at address {self.address}")
 
         self.topics.append(topic)
 
@@ -56,7 +58,7 @@ class Publisher:
         self.registration.send_string(self.address)
 
         broker_type = self.registration.recv_string()
-        logging.info(f"Connected to {broker_type} broker")
+        LOGGER.info(f"Connected to {broker_type} broker")
 
     def publish(self, topic, message, message_type=MessageType.STRING):
         """ Publishes message with the given topic
@@ -72,5 +74,6 @@ class Publisher:
                                                                "be published")
 
         self.message_pub.send_string(topic, flags=zmq.SNDMORE)
+        self.message_pub.send_string(datetime.utcnow().strftime(TIME_FORMAT), flags=zmq.SNDMORE)
         self.message_pub.send_string(message_type, flags=zmq.SNDMORE)
         self.type2sender[message_type](message)

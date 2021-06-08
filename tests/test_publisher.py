@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor
 from time import sleep
 
@@ -15,6 +16,7 @@ pub_address = "tcp://127.0.0.1:5557"
 broker_address = "tcp://127.0.0.1:5558"
 
 executor = ThreadPoolExecutor(max_workers=2)
+time_stamp_regex = re.compile(r'\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}')
 
 
 class TestPublisher:
@@ -67,9 +69,10 @@ class TestPublisher:
                          MessageType.JSON: socket.recv_json}
 
         topic = socket.recv_string()
+        time = socket.recv_string()
         message_type = socket.recv_string()
         message = type2receiver[message_type]()
-        return topic, message_type, message
+        return topic, time, message_type, message
 
     def test_publish(self, broker_sub):
         topic = "the topic name"
@@ -81,8 +84,9 @@ class TestPublisher:
 
         result = broker_sub.result(60)
         assert result[0] == topic
-        assert result[1] == MessageType.STRING
-        assert result[2] == message
+        assert time_stamp_regex.match(result[1])
+        assert result[2] == MessageType.STRING
+        assert result[3] == message
 
     def test_publish_pyobj(self, broker_sub):
         topic = "the topic name"
@@ -94,8 +98,9 @@ class TestPublisher:
 
         result = broker_sub.result(60)
         assert result[0] == topic
-        assert result[1] == MessageType.PYOBJ
-        assert result[2] == message
+        assert time_stamp_regex.match(result[1])
+        assert result[2] == MessageType.PYOBJ
+        assert result[3] == message
 
     def test_publish(self):
         with pytest.raises(TopicNotRegisteredError) as err:
