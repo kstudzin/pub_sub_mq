@@ -50,8 +50,6 @@ class AbstractBroker(ABC):
             self.process_pub_registration(topic, address)
         elif reg_type == pubsub.REG_SUB:
             self.process_sub_registration(topic, address)
-        elif reg_type == pubsub.REQ_PUB:
-            self.process_publisher_request(topic)
         else:
             logging.warning(f"Received registration message with unknown type: {reg_type}")
 
@@ -61,10 +59,6 @@ class AbstractBroker(ABC):
 
     @abstractmethod
     def process_sub_registration(self, topic, address):
-        pass
-
-    @abstractmethod
-    def process_publisher_request(self, topic):
         pass
 
 
@@ -127,9 +121,6 @@ class RoutingBroker(AbstractBroker):
         self.registration.send_string(BrokerType.ROUTE)
         logging.debug(f"Connected to subscriber at \"{address}\"")
 
-    def process_publisher_request(self, topic):
-        pass
-
 
 class DirectBroker(AbstractBroker):
 
@@ -165,10 +156,7 @@ class DirectBroker(AbstractBroker):
 
         # send multipart message with broker type, number of addresses
         # being sent, and a list of addresses
-        self.registration.send_string(BrokerType.DIRECT)
-
-    def process_publisher_request(self, topic):
+        self.registration.send_string(BrokerType.DIRECT, flags=zmq.SNDMORE)
         has_addresses = b'\x00' if len(self.registry[topic]) == 0 else b'\x01'
         messages = [has_addresses] + self.registry[topic]
-
         self.registration.send_multipart(messages)
