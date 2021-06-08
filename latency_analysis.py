@@ -18,7 +18,9 @@ def import_data():
         df_curr = pd.read_csv(os.path.join(source, file), header=None, usecols=[0], names=[name])
         df[name] = df_curr[name]
         names.append(name)
-    return df, names.sort()
+
+    names.sort()
+    return df, names
 
 
 def main():
