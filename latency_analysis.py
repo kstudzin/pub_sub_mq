@@ -7,7 +7,8 @@ from matplotlib import pyplot as plt
 
 source = "latency"
 filename_pattern = re.compile(".*(sub-(\\d+)_broker-([rd])).*")
-output = "boxplot.png"
+output_plot = "boxplot.png"
+output_stat = "boxplot.txt"
 
 
 def import_data():
@@ -31,16 +32,18 @@ def main():
 
     plt.figure()
     df.boxplot(column=cols)
-    plt.savefig(output, format="png")
-    print(f"Generated plot: {output}")
+    plt.savefig(output_plot, format="png")
+    print(f"Generated plot: {output_plot}")
 
     mode_df = pd.DataFrame()
     for name in cols:
         mode_df[name] = df[name].mode()
-
     mode_df.index = ['mode']
 
-    print(df.describe().append(mode_df, sort=True))
+    print(f"Statistics:  {output_stat}")
+    f = open(output_stat, "w")
+    f.write(df.describe().append(mode_df, sort=True).to_string())
+    f.close()
 
 
 if __name__ == "__main__":
