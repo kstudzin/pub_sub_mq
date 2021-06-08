@@ -25,13 +25,22 @@ def import_data():
 
 
 def main():
+    print("Analyzing...")
     df, cols = import_data()
+    df.sort_index(axis=1)
 
     plt.figure()
     df.boxplot(column=cols)
     plt.savefig(output, format="png")
+    print(f"Generated plot: {output}")
 
-    print(f"Generating plot: {output}")
+    mode_df = pd.DataFrame()
+    for name in cols:
+        mode_df[name] = df[name].mode()
+
+    mode_df.index = ['mode']
+
+    print(df.describe().append(mode_df, sort=True))
 
 
 if __name__ == "__main__":
