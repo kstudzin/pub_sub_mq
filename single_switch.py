@@ -1,5 +1,7 @@
 #!/usr/bin/python
 import argparse
+import os
+import shutil
 from time import sleep
 
 from mininet.cli import CLI
@@ -30,24 +32,19 @@ class SingleSwitchTopo(Topo):
 def config_parser():
     parser = argparse.ArgumentParser(prog="Single Switch Tests")
 
-    parser.add_argument('--subscribers', '-s', type=int, required=True,
-                        help='number of subscribers to test')
-    parser.add_argument('--type', '-t', choices=['r', 'd'], required=True,
-                        help='type of broker to use')
+    parser.add_argument('subscribers', type=int,
+                        help='max number of subscribers to test')
 
     return parser
 
 
-def main():
-    arg_parser = config_parser()
-    args = arg_parser.parse_args()
-
+def run_iteration(num_subs, broker_type):
     # If using direct flag, we need the the start listener flag,
     # otherwise we can just use an empty string
-    start_listener = "--start_listener" if args.type == 'd' else ""
+    start_listener = "--start_listener" if broker_type == 'd' else ""
 
     # Need one host for each subscriber, one for a publisher, and one for a broker
-    n_hosts = args.subscribers + 2
+    n_hosts = num_subs + 2
 
     """Create and test a simple network"""
     topo = SingleSwitchTopo(n=n_hosts)
@@ -62,7 +59,7 @@ def main():
     broker_address = address_format.format(broker.IP(), default_port)
 
     # Run the broker process
-    broker_cmd = broker_cmd_fmt.format(broker.IP(), default_port, args.type)
+    broker_cmd = broker_cmd_fmt.format(broker.IP(), default_port, broker_type)
     print(f"Running {broker_cmd}")
     broker.cmd(broker_cmd)
 
@@ -75,15 +72,16 @@ def main():
         )
         print(f"Running {subscriber_cmd}")
         subscriber.sendCmd(subscriber_cmd)
-    sleep(0.5)
+    sleep(5)
 
     # Run the publisher process
     publisher_cmd = publisher_cmd_fmt.format(
         address_format.format(publisher.IP(), default_port),
         broker_address
-        )
+    )
     print(f"Running {publisher_cmd}")
-    publisher.cmd(publisher_cmd)
+    publisher_out = publisher.cmd(publisher_cmd)
+    print(f"Publisher output: {publisher_out}")
 
     # Wait for the subscriber to finish processing before exiting
     for subscriber in subscribers:
@@ -93,6 +91,25 @@ def main():
     broker.cmd(f"kill %1")
 
     net.stop()
+
+
+def main():
+    arg_parser = config_parser()
+    args = arg_parser.parse_args()
+    max_subs = args.subscribers
+
+    if not os.path.exists('latency'):
+        os.mkdir('latency')
+    filename_fmt = "latency/sub-{0}_broker-{1}.log"
+
+    curr_sub = 1
+    while curr_sub <= max_subs:
+        for broker_type in ['r', 'd']:
+            print(f"Running test with {curr_sub} subscribers and {broker_type} broker")
+            run_iteration(curr_sub, broker_type)
+
+            shutil.move('message_logfile.log', filename_fmt.format(curr_sub, broker_type))
+        curr_sub *= 2
 
 
 if __name__ == '__main__':
