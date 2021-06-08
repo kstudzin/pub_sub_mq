@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 
 source = "latency"
 filename_pattern = re.compile(".*(sub-(\\d+)_broker-([rd])).*")
+output = "boxplot.png"
 
 
 def import_data():
@@ -28,7 +29,9 @@ def main():
 
     plt.figure()
     df.boxplot(column=cols)
-    plt.savefig("test.png", format="png")
+    plt.savefig(output, format="png")
+
+    print(f"Generating plot: {output}")
 
 
 if __name__ == "__main__":
