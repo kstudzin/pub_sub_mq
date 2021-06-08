@@ -1,6 +1,8 @@
 import logging
 import os
 import re
+import struct
+import time
 from concurrent.futures import ThreadPoolExecutor
 from time import sleep
 
@@ -69,7 +71,7 @@ class TestPublisher:
                          MessageType.JSON: socket.recv_json}
 
         topic = socket.recv_string()
-        time = socket.recv_string()
+        time = socket.recv()
         message_type = socket.recv_string()
         message = type2receiver[message_type]()
         return topic, time, message_type, message
@@ -96,9 +98,14 @@ class TestPublisher:
         sleep(.5)
         publisher.publish(topic, message, MessageType.PYOBJ)
 
+        min_sent = time.time() - 30
+        max_sent = time.time() + 30
+
         result = broker_sub.result(60)
         assert result[0] == topic
-        assert time_stamp_regex.match(result[1])
+        actual_time = struct.unpack('d', result[1])[0]
+        assert min_sent < actual_time
+        assert actual_time < max_sent
         assert result[2] == MessageType.PYOBJ
         assert result[3] == message
 

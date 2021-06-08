@@ -1,9 +1,9 @@
-from datetime import datetime
-
+import struct
+import time
 import zmq
 import pubsub
 from pubsub import LOGGER
-from pubsub.util import MessageType, TopicNotRegisteredError, TIME_FORMAT
+from pubsub.util import MessageType, TopicNotRegisteredError
 
 
 class Publisher:
@@ -73,7 +73,11 @@ class Publisher:
             raise TopicNotRegisteredError(topic, self.address, "Topic has not been registered with publisher. Cannot "
                                                                "be published")
 
+        time_sent = time.time()
+        time_sent_b = struct.pack('d', time_sent)
         self.message_pub.send_string(topic, flags=zmq.SNDMORE)
-        self.message_pub.send_string(datetime.utcnow().strftime(TIME_FORMAT), flags=zmq.SNDMORE)
+        self.message_pub.send(time_sent_b, flags=zmq.SNDMORE)
         self.message_pub.send_string(message_type, flags=zmq.SNDMORE)
         self.type2sender[message_type](message)
+
+        LOGGER.info(f"Message sent at {time_sent} ({time_sent_b})")

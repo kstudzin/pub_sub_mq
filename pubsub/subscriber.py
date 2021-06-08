@@ -1,10 +1,11 @@
-from datetime import datetime
+import struct
+import time
 from time import sleep
 import zmq
 import pubsub
 from pubsub import PERF_LOGGER, LOGGER
 from pubsub.broker import BrokerType
-from pubsub.util import MessageType, TopicNotRegisteredError, TIME_FORMAT
+from pubsub.util import MessageType, TopicNotRegisteredError
 
 
 def printing_callback(topic, message):
@@ -179,15 +180,14 @@ class Subscriber:
         notify the application code.
         """
         topic = self.message_sub.recv_string()
-        time_published = self.message_sub.recv_string()
+        time_published = self.message_sub.recv()
         message_type = self.message_sub.recv_string()
         message = self.type2receiver[message_type]()
 
-        time_out = datetime.strptime(time_published, TIME_FORMAT)
-        time_in = datetime.utcnow()
-        delta_time = time_in - time_out
-        time_in_str = time_in.strftime(TIME_FORMAT)
-        PERF_LOGGER.info(f"{delta_time}, {time_in_str}, {len(topic)}, {len(message)}")
+        time_sent = struct.unpack('d', time_published)[0]
+        time_recv = time.time()
+        delta_time = time_recv - time_sent
+        PERF_LOGGER.info(f"{delta_time}, {time_recv}, {len(topic)}, {len(message)}")
 
         self.notify(topic, message)
 
