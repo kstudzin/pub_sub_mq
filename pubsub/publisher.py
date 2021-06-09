@@ -22,9 +22,9 @@ class Publisher:
     def __init__(self, address, registration_address):
         """ Creates a publisher instance
 
-        :param address: the address of this publisher. String with format <scheme>://<ip_addr>:<port>
-        :param registration_address: address of the broker with which this publisher
-        registers topics. String with format <scheme>://<ip_addr>:<port>
+        :param str address: the address of this publisher. String with format <scheme>://<ip_addr>:<port>
+        :param str registration_address: address of the broker with which this publisher
+            registers topics. String with format <scheme>://<ip_addr>:<port>
         """
         self.address = address
         self.topics = []
@@ -47,7 +47,7 @@ class Publisher:
         to be published by this publisher. This method must be called before publishing
         an messages about the topic on the address.
 
-        :param topic: a string topic
+        :param str topic: a string topic
         """
         LOGGER.info(f"Publisher registering for topic {topic} at address {self.address}")
 
@@ -63,10 +63,10 @@ class Publisher:
     def publish(self, topic, message, message_type=MessageType.STRING):
         """ Publishes message with the given topic
 
-        :param topic: the topic of the message to publish, should be a registered string
-        :param message: the message to publish
-        :param message_type: the type of the message to send. Optional. Default = MessageType.STRING
-        (valid values are MessageType.STRING, MessageType.PYOBJ, and MessageType.JSON)
+        :param str topic: the topic of the message to publish, should be a registered string
+        :param str message: the message to publish
+        :param str message_type: the type of the message to send. Optional. Default = MessageType.STRING
+            (valid values are MessageType.STRING, MessageType.PYOBJ, and MessageType.JSON)
         """
 
         if topic not in self.topics:

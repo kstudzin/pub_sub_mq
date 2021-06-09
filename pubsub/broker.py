@@ -82,8 +82,8 @@ class RoutingBroker(AbstractBroker):
     def __init__(self, registration_address):
         """ Creates a routing broker instance
 
-        :param registration_address: the address to use by this broker for publishers
-        and subscribers to register with. Format: <scheme>://<ip_addr>:<port>
+        :param str registration_address: the address to use by this broker for publishers
+            and subscribers to register with. Format: <scheme>://<ip_addr>:<port>
         """
         super().__init__(registration_address)
         self.message_in = self.context.socket(zmq.SUB)
@@ -102,8 +102,14 @@ class RoutingBroker(AbstractBroker):
         self.message_out.send_multipart(message)
 
     def process_pub_registration(self, topic, address):
-        # Connect address to message receiving socket and
-        # subscribe to topic
+        """ Connect address to message receiving socket and
+        send broker type message to publisher.
+
+        :param str topic: A string topic
+        :param str address: the address of this subscriber. String with
+            format <scheme>://<ip_addr>:<port>
+        """
+
         self.message_in.connect(address)
         self.message_in.setsockopt_string(zmq.SUBSCRIBE, topic)
 
@@ -112,8 +118,14 @@ class RoutingBroker(AbstractBroker):
         LOGGER.debug(f"Connected to publisher at {address} for topic \"{topic}\"")
 
     def process_sub_registration(self, topic, address):
-        # Connect the message sending socket to the new
-        # subscriber
+        """ Connect the message sending socket to the new subscriber and
+        send broker type message to subscriber registered for that topic.
+
+        :param str topic: A string topic
+        :param str address: the address of this subscriber. String with
+            format <scheme>://<ip_addr>:<port>
+        """
+        #
         self.message_out.connect(address)
 
         # Complete registration with reply containing broker type
@@ -122,6 +134,22 @@ class RoutingBroker(AbstractBroker):
 
 
 class DirectBroker(AbstractBroker):
+    """ Direct Broker implementation handles the managing which publishers
+    are sending messages on a particular topic and from what location.
+
+    The Direct Broker contains the following socket:
+    - A socket that publishes received publisher registrations to subscribers
+
+    (This is in addition to the registration socket in the super class)
+
+    There are two key events that happen that this broker must respond to
+    - Registration messages from publishers and subscribers
+    - Sending location messages from publishers to subscribers
+
+    There is a method to process each of these events that must be run in
+    loops in threads
+
+    """
 
     def __init__(self, registration_address):
         # call super class constructor
@@ -137,6 +165,13 @@ class DirectBroker(AbstractBroker):
         LOGGER.info(f"Created direct broker at {registration_address}")
 
     def process_pub_registration(self, topic, address):
+        """
+        Adds a publisher's address to a dictionary topic and
+        send message to subscribers registered for that topic.
+        :param str topic: A string topic
+        :param str address: the address of the publisher. String with
+            format <scheme>://<ip_addr>:<port>
+        """
         # add publisher to map of topics to addresses
         encoded_address = address.encode('utf-8')
         self.registry[topic].append(encoded_address)
@@ -149,6 +184,13 @@ class DirectBroker(AbstractBroker):
         self.registration.send_string(BrokerType.DIRECT)
 
     def process_sub_registration(self, topic, address):
+        """Connect subscriber address to socket that publishes new
+        publisher connection information and send registration reply
+
+        :param str topic: A string topic
+        :param str address: the address of the subscriber. String with
+            format <scheme>://<ip_addr>:<port>
+        """
         # connect subscriber address to socket that publishes new
         # publisher connection information
         self.message_out.connect(address)
