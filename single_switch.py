@@ -40,21 +40,31 @@ def config_parser():
 
     parser.add_argument('subscribers', type=int,
                         help='max number of subscribers to test')
+    parser.add_argument('--mode', '-m', choices=['single', 'all', 'cli'], default='single',
+                        help='Determines how to run tests: \n'
+                             '  Single runs a single iteration\n'
+                             '  All runs iterations with 1 up to specified subscribers\n'
+                             '  Cli sets up the network and opens a cli')
 
     return parser
 
 
-def run_iteration(num_subs, broker_type):
-    # If using direct flag, we need the the start listener flag,
-    # otherwise we can just use an empty string
-    start_listener = "--start_listener" if broker_type == 'd' else ""
+def create_network(num_subs):
+    """Create and test a simple network"""
 
     # Need one host for each subscriber, one for a publisher, and one for a broker
     n_hosts = num_subs + 2
 
-    """Create and test a simple network"""
     topo = SingleSwitchTopo(n=n_hosts)
-    net = Mininet(topo=topo, controller=OVSController)
+
+    return Mininet(topo=topo, controller=OVSController)
+
+
+def run_iteration(net, broker_type):
+    # If using direct flag, we need the the start listener flag,
+    # otherwise we can just use an empty string
+    start_listener = "--start_listener" if broker_type == 'd' else ""
+
     net.start()
 
     hosts = net.hosts
@@ -103,20 +113,37 @@ def main():
     arg_parser = config_parser()
     args = arg_parser.parse_args()
     max_subs = args.subscribers
+    mode = args.mode
 
-    shutil.rmtree(output_dir, ignore_errors=True)
-    os.mkdir(output_dir)
     filename_fmt = "sub-{0}_broker-{1}.log"
 
-    curr_sub = 1
-    while curr_sub <= max_subs:
-        for broker_type in ['r', 'd']:
-            print(banner.format(curr_sub, broker_type))
-            run_iteration(curr_sub, broker_type)
+    if mode == 'all':
+        shutil.rmtree(output_dir, ignore_errors=True)
+        os.mkdir(output_dir)
 
-            filename = filename_fmt.format(curr_sub, broker_type)
+        curr_sub = 1
+        while curr_sub <= max_subs:
+            for broker_type in ['r', 'd']:
+                print(banner.format(curr_sub, broker_type))
+                net = create_network(curr_sub)
+                run_iteration(net, broker_type)
+
+                filename = filename_fmt.format(curr_sub, broker_type)
+                shutil.move(perf_logs, os.path.join(output_dir, filename))
+            curr_sub *= 2
+    elif mode == 'single':
+        for broker_type in ['r', 'd']:
+            print(banner.format(max_subs, broker_type))
+            net = create_network(max_subs)
+            run_iteration(net, broker_type)
+
+            filename = filename_fmt.format(max_subs, broker_type)
             shutil.move(perf_logs, os.path.join(output_dir, filename))
-        curr_sub *= 2
+    else:
+        net = create_network(max_subs)
+        net.start()
+        CLI(net)
+        net.stop()
 
 
 if __name__ == '__main__':
