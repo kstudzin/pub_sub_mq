@@ -282,3 +282,58 @@ max       0.131203     0.164185     0.180269     0.209540     0.369497     0.346
 
 **Plotted Graphs**
 
+Testing 1, 2, 4, 8, 16 subscribers with each subscriber receiving 1000 messages
+
+Testing 1, 2, 4, 8, 16, 32, 64 subscribers with each subscriber receiving 1000 messages
+
+**Analysis**
+
+_**Does the typical time to deliver a message increase as the number of subscribers increases?**_ 
+
+Yes, the typical time to deliver a message increases as the number of subscribers increases.
+
+We were able to run tests with 32 and 64 subscribers which show the latency numbers decrease significantly. It is likely that ZMQ is doing optimization, but we were not able to investigate the mechanism.
+
+_**How significant is this effect?**_
+
+ This is consistent across tests. The typical time to deliver a message appears to increase approximately linearly as the number of subscribers increases. (Note that the x-axis is a log scale). Latency appears to increase at approximately the same rate for both brokers with the direct broker being shifted down slightly.
+
+_**Does your system become less predictable as the number of subscribers increases (e.g. as count(subs) goes up, do you see the Q1 to Q3 recordings get farther apart?)?**_
+
+The system becomes less predictable as the number of subscribers increases. We know this because the height of the boxes in our plot increases.
+
+_**Do you expect higher latency in direct-vs-proxy mode?**_
+
+Higher latency should be expected in proxy mode for two reasons:
+1. The broker needs to receive all messages so it becomes a bottleneck
+2. There is an additional set of queues that messages must wait in
+
+_**Peek inside your exact latency measurements - do you see that the first few (or first single) latency measurements are always quite a bit higher than then next ones? Can you explain this?**_
+
+Yes, the first few latency measurements are a bit higher than the next ones. It appears that ZMQ is performing some optimization after it has sent some messages. Perhaps ZMQ is able to optimize message passing based on the network it is operating on.
+
+Sample of the first 20 messages from the test with 2 subscribers using the proxy broker:
+
+```
+0.0013289451599121094
+0.001219034194946289
+0.0012309551239013672
+0.0012502670288085938
+0.0011250972747802734
+0.0011875629425048828
+0.0011746883392333984
+0.0012738704681396484
+0.0010242462158203125
+0.0011157989501953125
+
+0.0007255077362060547
+0.0007359981536865234
+0.0006814002990722656
+0.0006804466247558594
+0.0007774829864501953
+0.0008375644683837891
+0.00067138671875
+0.0007216930389404297
+0.0008053779602050781
+0.0008172988891601562
+```
