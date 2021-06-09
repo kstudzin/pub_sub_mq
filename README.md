@@ -284,7 +284,11 @@ max       0.131203     0.164185     0.180269     0.209540     0.369497     0.346
 
 Testing 1, 2, 4, 8, 16 subscribers with each subscriber receiving 1000 messages
 
+![boxplot](https://user-images.githubusercontent.com/10711838/121433686-54a82280-c94a-11eb-918c-70052e6997c2.png)
+
 Testing 1, 2, 4, 8, 16, 32, 64 subscribers with each subscriber receiving 1000 messages
+
+<img width="592" alt="boxplot4" src="https://user-images.githubusercontent.com/10711838/121435404-d0a36a00-c94c-11eb-979a-970dd6bf33d8.png">
 
 **Analysis**
 
