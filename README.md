@@ -16,7 +16,7 @@ Given the popularity of digital communication with applications, message passing
 This API minimizes the development time to integrate message passing into an application by providing a few simple options at each link in the messaging chain. Additonally, this API decouples publishers from subscribers, meaning that a publisher may have no subscribers and a subscriber can register for a topic regardless of whether a publisher existing for said topic. At the server level the application has the choice to handle all messages or merely serve as a registration mechanism. The publishers have but two options they can **register** for a topic or **publish** a message on that topic. The subscribers can choose to **subscribe** or **unsubscribe** from a topic, as well as, **listen** to all topics for which they have registered.
 
 #### How (it works)
-- [ ] TODO Review
+
 ##### Broker
 The broker in this messaging API incorporates space decoupling among publishers and subscribers. This means that either party can exist regardless of the presence of the opposing party. When you first start the server you have two options regarding the work that will be required by this entity. 
 You can choose the routing option to have all parties register with the broker that handles the work of serving as an intermediary for all messages passing from publishers to subscribers. The broker also in continues listening for parties registering. 
@@ -52,6 +52,8 @@ In the direct broker scenario, the address of the publisher is received by the s
 ### FILE DESCRIPTIONS
 - [ ] TODO Revise base on pending merges 06/07/2021
 * *FOLDER* - cs6381-assignment1
+  * *FOLDER* - latency
+    * automated testing result files (sub-#_broker-#.log, test.png)
   * *FOLDER* - pubsub
     * \_\_init\_\_.py - Package initializer with dual log file creation 1 for application information and 1 for performance analysis
     * broker.py - Three classes for API an AbstractBroker, RoutingBroker(AbstractBroker), and DirectBroker(AbstractBroker)
@@ -59,22 +61,26 @@ In the direct broker scenario, the address of the publisher is received by the s
     * subscriber.py - One class that either connects to RoutingBroker or connects to multiple Subscribers based upon addresses provided by DirectBroker
     * util.py - internal API helper file
   * *FOLDER* - tests
+    * *FOLDER* - integration
+      * test_pubsub.py - integration tests
     * test_direct_broker.py - units tests
     * test_publisher.py - units tests
     * test_routing_broker.py - units tests
     * test_subscriber.py - units tests
-  * psserver.py - CLI to start direct or routing broker
+  * latency_analysis.py - Utility for reading csv file into graphing function which is then output to test.png
   * ps_publisher.py - CLI to register for a topic and publish messages
   * ps_subscriber.py - CLI to register for a topic and receive messages
+  * psserver.py - CLI to start direct or routing broker
+  * single_switch.py - automated latency testing
 
 <hr>
 
-### SYSTEM DEMONSTRATION
+### PROJECT DEMONSTRATION
 #### RECOMMENDED
  * [Install Virtual Machine](https://www.virtualbox.org/wiki/Downloads)
  * [Install Ubuntu OS on VM](https://linuxconfig.org/how-to-install-ubuntu-20-04-on-virtualbox)
 
-#### REQUIRED
+#### REQUIRED PACKAGES
  * [Install 0mq](https://zeromq.org/download/)
  * [Install Faker](https://faker.readthedocs.io/en/master/#basic-usage)
  * [Install Mininet](http://mininet.org/download/)
@@ -85,19 +91,24 @@ In the direct broker scenario, the address of the publisher is received by the s
  * Start mininet service `sudo mn --topo single, 3` switch = single , hosts = 3
  * Start multiple terminals `xterm h1 h2 h3`
  * Start one of each CLIs listed below within each of the terminal windows
+
+#### AUTOMATED TESTING
+ * Open terminal in virtual machine operating system
+ * Run `sudo python3 single_switch.py #` # Represents the number of subscribers in test
+
 <hr>
 
 ### COMMAND LINE INTERFACE USAGE
 - [ ] TODO Review base on pending merges 06/07/2021
 * psserver.py - start broker
   * -h : Help - to see argument options
-  * Example: python3 psserver.py --t r --a 127.0.0.1 --p 5555
+  * Example: `python3 psserver.py --t r --a 127.0.0.1 --p 5555`
   * --t : d = Direct Broker r = Routing Broker
   * --a : IP Address 
   * --p : Port number
 * ps_publisher - start publisher
   * -h : Help - to see argument options
-  * Example: python3 ps_publisher.py tcp://127.0.0.1:5556 tcp://127.0.0.1:5555 --t hello --r 100 --d 1.5
+  * Example: `python3 ps_publisher.py tcp://127.0.0.1:5556 tcp://127.0.0.1:5555 --t hello --r 100 --d 1.5`
   * address - publisher's own address formatted as \<transport>://<ip_address>:\<port>
   * broker address - brokers known address formatted as \<transport>://<ip_address>:\<port>
   * --t : Topics\<string> 0-* topics
@@ -105,44 +116,65 @@ In the direct broker scenario, the address of the publisher is received by the s
   * --d : Delay\<float> - amount of time in seconds before sending messages
 * ps_subscriber - start subscriber
   * -h : Help - to see argument options
-  * Example: python3 ps_subscriber.py tcp://127.0.0.1:5557 tcp://127.0.0.1:5555 --t hello
+  * Example: `python3 ps_subscriber.py tcp://127.0.0.1:5557 tcp://127.0.0.1:5555 --t hello`
   * address - subscriber's own address formatted as \<transport>://<ip_address>:\<port>
   * broker address - brokers known address formatted as \<transport>://<ip_address>:\<port>
   * --t : Topics\<string> 0-* topics
-* create_pub_sub.py - utility to start sample publishers/subscribers
 
 <hr>
 
 ### APPLICATION PROGRAMMING INTERFACE(API)
-#### PUBLISHER
-```
-Publisher(address = <address of this publisher>, registration_address = <address of the broker>)
 
-register(topic = <string>)
+#### REQUIRED PACKAGES
+ * [Install 0mq](https://zeromq.org/download/)
+
+
+#### PUBLISHER
+
+`Publisher(address = <address of this publisher>, registration_address = <address of the broker>)`
+
+* Contructs an instance of a publisher with its own address and the brokers address.
+
+`register(topic = <string>)`
+
+* Registers the publisher with the broker for the given topic.
   
-publish(topic = <string>, message = <string>, message_type = <default = MessageType.STRING>)
-MessageType = [STRING, PYOBJ, JSON]
-```
+`publish(topic = <string>, message = <string>, message_type = <default = MessageType.STRING>)
+MessageType = [STRING, PYOBJ, JSON]`
+
+* Publishes a message for a given topic in one of three message formats.
 
 #### SUBSCRIBER
-```
-Subscriber(address = <address of this subscriber>, registration_address = <address of the broker>)
 
-register(topic = <string>)
+`Subscriber(address = <address of this subscriber>, registration_address = <address of the broker>)`
+
+* Contructs an instance of a subscriber with its own address and the brokers address.
+
+`register(topic = <string>)`
+
+* Registers the subscriber with the broker for the given topic.
   
-unregister(topic = <string>)
-  
-notify(topic = <string>, message = <string>)
+`unregister(topic = <string>)`
 
-register_callback(callback = Function or method to be called when a message is received)
+* Unregisters the subscriber with the broker for the given topic. Subscriber will stop receiving messages.
 
-wait_for_msg()
+`notify(topic = <string>, message = <string>)`
 
-wait_for_registration()
-```
-* register_callback() provides the application a means of receiving the messages.
-* wait_for_message() must be running on the client upon receipt of a message the notify() is called which in turn sends the message details to the registered callback. 
-* wait_for_registration() must be run in a seperate thread so that it will not block the subscriber from receiving messages.
+* Passes the received message to the user's application
+
+`register_callback(callback = Function or method to be called when a message is received)`
+
+* Application can register a callback that will receive the arguments from notify()
+
+`wait_for_msg()`
+
+* Once subscriber has registered application wait_for_message() must be running on the client.
+* Upon receipt of a message the notify() is called which in turn sends the message details to the registered callback. 
+
+`wait_for_registration()`
+
+* Must be run in a seperate thread so that it will not block the subscriber from receiving messages.
+* Allows subscriber to receive new publisher registrations.
 
 <hr>
 
@@ -150,12 +182,12 @@ wait_for_registration()
 
 #### UNIT TESTING
 From main project directory
-* To run application unit tests
 
 `pytest`
-* To run tests and get coverage report
+* To run application unit tests
 
 `pytest --cov=pubsub -cov-report html`
+* To run tests and get coverage report
 
 <hr>
 
@@ -164,95 +196,61 @@ From main project directory
 
 <table border=2 align="center">
   <tr>
-    <td align="center" colspan="10">ROUTING BROKER</td>
+    <td align="center" colspan="11">Publish 1000 messages (time)</td>
   </tr>
   <tr>
-    <td align="center" colspan="10">Publisher Topics (Length)</td>
+    <td></td><td align="center" colspan="5">ROUTING BROKER</td><td align="center" colspan="5">DIRECT BROKER</td>
   </tr>
   <tr align="center">
-    <th>Subscribers</th><th>1(short)</th><th>1(medium)</th><th>1(long)</th><th>2(short)</th><th>2(medium)</th><th>2(long)</th><th>3(short)</th><th>3(medium)</th><th>3(long)</th>
+    <th>Subscribers</th><th>Q1</th><th>MED</th><th>Q3</th><th>Q4</th><th>MAX</th><th>Q1</th><th>MED</th><th>Q3</th><th>Q4</th><th>MAX</th>
   </tr>
   <tr align="center">
-    <td align="right">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">8</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">8</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">16</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">16</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td border=2 align="right">32</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">32</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">64</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">64</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">128</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">128</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
   <tr align="center">
-    <td align="right">256</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">256</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
    <tr align="center">
-    <td align="right">512</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td align="right">512</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
   </tr>
 </table>
 
 <hr>
 
-<table border=2 align="center">
-  <tr>
-    <td align="center" colspan="10">DIRECT BROKER</td>
-  </tr>
-  <tr>
-    <td align="center" colspan="10">Publisher Topics(length)</td>
-  </tr>
-  <tr align="center">
-    <th>Subscribers</th><th>1(short)</th><th>1(medium)</th><th>1(long)</th><th>2(short)</th><th>2(medium)</th><th>2(long)</th><th>3(short)</th><th>3(medium)</th><th>3(long)</th>
-  </tr>
-  <tr align="center">
-    <td align="right">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">8</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">16</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">32</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">64</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">128</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">256</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">512</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-</table>
 
 #### Plotted graphs
-- [ ] TODO
+- [ ] TODO Drag 'n Drop \*.png files HERE
+
+[Routing Broker Latency]
+
+[Direct Broker Latency]
 
 
 ### REQUIREMENTS
+
+- [ ] TODO REMOVE AS ACCOMPLISHED
+
 Mandatory: 
 
 - [ ] Use a SingleSwitchTopo with one host per participant in your system (e.g. one host per subscriber, one host per publisher, and one host for the broker). 
