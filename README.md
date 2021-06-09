@@ -87,7 +87,7 @@ MessageType = [STRING, PYOBJ, JSON]
 
 #### Subscriber
 
-Contruct an instance of a subscriber with its own address and the brokers address:
+Construct an instance of a subscriber with its own address and the brokers address:
 
 ```
 Subscriber(address = <address of this subscriber>, registration_address = <address of the broker>)
@@ -111,7 +111,7 @@ Register a callback that accepts a topic and message to notify the application t
 register_callback(callback = Function or method to be called when a message is received)
 ```
 
-Wait to receive messages.
+Wait to receive messages:
 
 * Once subscriber has registered, application must be running wait_for_msg() in a loop 
 * Upon receipt of a message the application is notified via the registered callback
@@ -129,13 +129,57 @@ Receive notifications of publisher registration from broker:
 wait_for_registration()
 ```
 
+#### Brokers
+
+**RoutingBroker**
+
+Construct an instance of routing broker at its well known address:
+
+```
+RoutingBroker(address = <address of broker>)
+```
+
+Wait to receive registrations from publishers or subscribers:
+
+* Must be running in a loop in a thread
+
+```
+process_registration()
+```
+
+
+Waits to receive messages from publishers:
+
+* Must be running in a loop in a thread
+```
+process()
+```
+
+**DirectBroker**
+
+Construct an instance of routing broker at its well known address:
+
+```
+DirectBroker(address = <address of broker>)
+```
+
+Wait to receive registrations from publishers or subscribers:
+
+* Must be running in a loop in a thread
+
+```
+process_registration()
+```
+
 #### Unit Testing
 
-`pytest`
-* To run application unit tests
+Run unit tests:
 
-`pytest --cov=pubsub -cov-report html`
-* To run tests and get coverage report
+`$ pytest`
+
+Run tests and get coverage report
+
+`$ pytest --cov=pubsub -cov-report html`
 
 ### CLI
 
