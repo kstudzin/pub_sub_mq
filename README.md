@@ -1,56 +1,187 @@
 # cs6381-assignment1: Single Broker Publish-Subscribe
 
-### Narrative
+## Introduction
+Multiple patterns have been established to facilitate message delivery within applications. This Application Programming Interface (API) provides and way to utilize the relatively simple Publisher/Subscriber model. This API allows a developer two options for how message passing would occur within their application. One provides an intermediary through which all messages pass from a publisher to a subscriber. The other option provides a means of discovery such that a subscriber can find publishers to receive messages from directly.
 
-#### Who
-There are multiple patterns that have been established to facilitate message delivery within applications. This Application Programming Interface(API) provides and way to utilize the relatively simple Publisher/Subscriber model. This API allows a developer two options for how message passing would occur within their application. One provides an intermediary through which all messages pass from a publisher to a subscriber. The second option simply provides a means of discovery such that a subscriber can find a publisher to receive messages from directly.
+### What
+There are three entities at the core of this API: publishers, subscribers, and brokers. Publishers are entities that publishes messages and an associated topic. Subscribers are entities that subscribe to receive messages on topics. Brokers are entities that facilitate connecting publishers and subscribers. The different broker implementations determine which message passing mechanism of the two discussed above is used in the implementation. The broker that serves as the intermediary is called the routing broker, and the broker that helps subscribers find publishers to connect to is called the direct broker.
 
-#### What
-[See File Descriptions below](#file-descriptions)
+### Why
+Given the popularity of communication within applications, message passing is one step shy of required for modern applications. Providing this service to users helps to increase engagement of the user base without adding any additional work for content developers. Once the messaging service is incorporated into the application, the users become a significant source of interactive content.
 
+### When
+Publish/Subscribe is an appropriate message passing choice when the publishers and subscribers may come and go because neither the publishers nor the subscribers depend on the other existing. In other words, a publisher may have no subscribers in which case messages are dropped, and a subscriber can register for a topic on which no publishers are currently publishing in which case it does not receive messages. 
 
-#### When
-Given the popularity of digital communication with applications, message passing is one step shy of required for modern applications. Providing this service to users helps to increase engagement of the user base without adding any additional work for content developers. Once the messaging service is incorporated into the application the users become a significant source of interactive content.
+## How (it works)
 
-#### Why
-This API minimizes the development time to integrate message passing into an application by providing a few simple options at each link in the messaging chain. Additonally, this API decouples publishers from subscribers, meaning that a publisher may have no subscribers and a subscriber can register for a topic regardless of whether a publisher existing for said topic. At the server level the application has the choice to handle all messages or merely serve as a registration mechanism. The publishers have but two options they can **register** for a topic or **publish** a message on that topic. The subscribers can choose to **subscribe** or **unsubscribe** from a topic, as well as, **listen** to all topics for which they have registered.
+### Broker
+The goal of the broker is to decouple publishers and subscribers so that they do not need to know the address of the entities that they want to connect to. To accomplish this, the broker has an address that is well-known to publishers and subscribers. The broker must be running as a service on that address, and then applications can create publishers and subscribers that connect to the well-known address to register what topics they would like to send and receive messages on.
 
-#### How (it works)
+As discussed in the introduction, there are two broker configurations. The user must select either routing or direct broker configuration when starting the service. The broker configuration determines the registration protocol as well as the connections that are made to send messages. In the routing configuration all parties register with the broker serves as an intermediary. After registration, when publishers send messages, they are received by the broker which forwards them to the subscribers.
 
-##### Broker
-The broker in this messaging API incorporates space decoupling among publishers and subscribers. This means that either party can exist regardless of the presence of the opposing party. When you first start the server you have two options regarding the work that will be required by this entity. 
-You can choose the routing option to have all parties register with the broker that handles the work of serving as an intermediary for all messages passing from publishers to subscribers. The broker also in continues listening for parties registering. 
-The second option, known as the direct broker, only serves as a mechanism for publishers to register who they are(location) and which topic(s) that they will be publishing. After that registration process the broker will not communicate with the publisher again unless the publisher registers additional topics. The subscribers register with this broker type only for the purpose of discovering if there are publisher(s) for a given topic. If publishers exist for a topic the subscriber will receive a list of addresses from the broker that they can connect to. If a publisher registers for a topic after a subscriber has subscribed then a message will be sent to subscribers with the location of the new publisher.
+The broker maintains three connections to manage these processes. One connection is bound to the brokers address - this is used for registration. One connection connects to all the publishers' addresses - this is used for receiving messages. The publishers' addresses are bound to the other side of the connection. During registration, this connection subscribes to the topic that the publisher is registering for. The third connection connects to all the subscribers addresses - this is used to send messages to the subscribers. The subscribers' addresses are bound to the other side of the connection and manages the topics it is subscribing to.
 
-##### Publisher
-The behavior of the publisher does not change based upon the configuration of the broker. The publisher will establish a connection to the well known broker and registers with the broker the topic(s) that it will be publishing as well as its own location. Once the handshake has occured with the broker, the publisher may begin publishing messages without any regard for what entities may or may not be "listening" for those messages. There exists an edge case where subscribers may miss messages if a publisher registers for a topic and immediately begins sending messages.
+Two processes run concurrently in this configuration. One process waits for the registration connection to receive messages; this is done in the `process_registration` method. Another process waits for the message receiving connection; this is done in the `process` method. Both of these methods need to be called in loops in separate threads to run this configuration as a service. 
 
-##### Subscriber
-The behavior of the subscriber varies only slighly based upon the configuration of the broker, not so much as to how, but who. In both scenarios the subscriber establishes a connection with the well known broker. This connection allows for the subscriber to register interest in one or more topics at any time. The second connection that is established by the subscriber does depend upon the broker type. 
-In the case of the routing broker, the subscriber will inform the broker of its well known location at which it will be listening for all topics sent from the broker. From that point all messages from all publishers for a given topic will be passed to the subscriber.
-In the direct broker scenario, the address of the publisher is received by the subscriber upon registration for a given topic.  Upon receipt, subscriber establishes connections directly with each of publishers that they have subscribed. 
+The other configuration, known as the direct broker, serves as a mechanism to facilitate a direct connection between publishers and subscribers. Similarly to the routing configuration, both publishers and subscribers must register with the broker before publishing; however the registering is more complex in this configuration. Here, the broker has two connections: an initial registration connection bound to the broker's address and a connection, also used in the registration process, that connects to the subscribers' addresses such that the broker can inform subscribers of new publishers they should connect to. This is a complex process, so let's dive in a little deeper.
 
-#### How (to use)
-[See Command Line Interface(CLI) Usage below](#command-line-interface-usage)
+When a publisher registers, it sends its address and a topic to the connection bound to the broker's address. When the broker receives this message, it first adds the topic and address to a record of the addresses publishing on each topic which will be used later when a subscriber registers. Then it publishes a message to all registered subscribers on the second connection mentioned in the prior paragraph. The message's topic is the topic that the publisher is registering for and the body of the message is the publisher's address. We will discuss how the subscriber uses this information in the subscriber section.
 
-[See Application Programming Interface(API) Usage below](#application-programming-interfaceapi)
+When a subscriber registers, it also sends its  address and a topic to the connection bound to the broker's address. When the broker receives this message, it responds by sending the subscriber a list of publishers' addresses publishing on the topic the subscriber registered for. It is the subscriber's responsibility to connect to these addresses. 
 
-<hr>
+After that registration process the broker will not communicate with the publisher until the publisher registers additional topics. The subscribers register with this broker type only for the purpose of discovering if there are publishers for a given topic. If publishers exist for a topic the subscriber will receive a list of addresses from the broker that they can connect to. If a publisher registers for a topic after a subscriber has subscribed then a message will be sent to subscribers with the location of the new publisher.
 
-### BROKER PROCESS DIAGRAMS
+### Publisher
 
-[Routing_Broker_Diagram](https://user-images.githubusercontent.com/76195473/121063916-ea9a4c80-c794-11eb-9a7f-162a83d3ed62.png)
+The behavior of the publisher does not change based upon the configuration of the broker. The publisher will establish a connection to the well known broker and registers the topic(s) that it will be publishing as well as its own address with the broker. Once the handshake has occured with the broker, the publisher may begin publishing messages without any regard for what entities may or may not be listening for those messages. Users of the API should note that existing registered subscribers may miss messages if a publisher registers for a topic and immediately begins sending messages because it takes more time to make the connection than to send the messages.
+
+### Subscriber
+
+The behavior of the subscriber varies based upon the broker configuration. In both configurations, the subscriber establishes a connection with the well known broker and a connection to receive messages on. The first connection allows the subscriber to register interest in topics by connecting to the broker address. The second connection binds to the subscriber's address in the routing configuration and connects to the publishers' addresses in the direct configuration. 
+'
+To register with the routing broker, the subscriber informs the broker of the address at which it will be listening for all topics sent from the broker. The broker will connect to that address so that it receives the messages the broker forwards from the publishers.
+
+To register with the direct broker, the subscriber inform the broker of its address at which it will be listening for new publisher registrations. The broker connects to that address and then sends the subscriber the addresses of the publishers for the given topic.  Upon receipt, subscriber establishes connections directly with each of publishers that it has subscribed. 
+
+In each case, the subscriber will also set the topics to receive messages for on the message receiving connection so that the underlying connection can ensure it only receives messages it is interested in. The message receiving connection waits to receive messages in the `wait_for_msg` method on the subscriber. For a subscriber to receive connections this method must be run in a thread in a loop. 
+
+When using a direct publisher, the subscriber also maintains a third connection that subscribes to updates from the broker on new publishers that are registering. When used, this connection is bound to the subscriber's address. This connection waits for messages in the `wait_for_registration` method which must be run in a loop in a thread.
+
+### Diagrams
+
+[Routing Broker Diagram](https://user-images.githubusercontent.com/76195473/121063916-ea9a4c80-c794-11eb-9a7f-162a83d3ed62.png)
 
   * All message passing goes through routing broker.
 
-[Direct_Broker_Diagram](https://user-images.githubusercontent.com/76195473/121063991-07cf1b00-c795-11eb-910e-6cae570af6cb.png)
+[Direct Broker Diagram](https://user-images.githubusercontent.com/76195473/121063991-07cf1b00-c795-11eb-910e-6cae570af6cb.png)
 
-  * Direct broker holds registry to all publishers to send messages directly to subscribers who register for topics.
+  * Both publishers and subscribers register with the broker but messages are sent directly.
 
-<hr>
+## How (to use)
 
-### FILE DESCRIPTIONS
-- [ ] TODO Revise base on pending merges 06/07/2021
+### API
+
+#### Required
+ * Python 3
+ * [Install 0mq](https://zeromq.org/download/)
+
+#### Publisher
+
+Contruct an instance of a publisher with its own address and the brokers address:
+```
+Publisher(address = <address of this publisher>, registration_address = <address of the broker>)
+```
+
+Register the publisher with the broker for the given topic:
+
+```
+register(topic = <string>)
+```
+
+Publishe a message for a given topic in one of three message formats:
+
+```
+publish(topic = <string>, message = <string>, message_type = <default = MessageType.STRING>)
+MessageType = [STRING, PYOBJ, JSON]
+```
+
+#### Subscriber
+
+Contruct an instance of a subscriber with its own address and the brokers address:
+
+```
+Subscriber(address = <address of this subscriber>, registration_address = <address of the broker>)
+```
+
+Register the subscriber with the broker for the given topic:
+
+```
+register(topic = <string>)
+```
+
+Unregister the subscriber with the broker for the given topic. Subscriber will stop receiving messages on the topic:
+  
+```
+unregister(topic = <string>)
+```
+
+Register a callback that accepts a topic and message to notify the application that the subscriber has received a message:
+
+```
+register_callback(callback = Function or method to be called when a message is received)
+```
+
+Wait to receive messages.
+
+* Once subscriber has registered, application must be running wait_for_msg() in a loop 
+* Upon receipt of a message the application is notified via the registered callback
+
+```
+wait_for_msg()
+```
+
+Receive notifications of publisher registration from broker:
+
+* Only used with direct broker
+* Must be running in a loop in a thread 
+
+```
+wait_for_registration()
+```
+
+#### Unit Testing
+
+`pytest`
+* To run application unit tests
+
+`pytest --cov=pubsub -cov-report html`
+* To run tests and get coverage report
+
+### CLI
+
+This CLI is an application using the publish/subscriber API described above.
+
+#### Required packages
+ * [Install Faker](https://faker.readthedocs.io/en/master/#basic-usage)
+
+**Start broker**
+
+To see full help menu: `python psserver.py -h`
+
+Example: `python psserver.py --type r --address 127.0.0.1 --port 5555`
+
+**Start subscriber**
+
+To see full help menu: `python ps_subscriber.py -h`
+
+Example: `python ps_subscriber.py tcp://127.0.0.1:5557 tcp://127.0.0.1:5555 --t hello`
+
+**Start publisher**
+
+To see full help menu: `python ps_publisher.py -h`
+
+Example: `python ps_publisher.py tcp://127.0.0.1:5556 tcp://127.0.0.1:5555 --t hello --r 100 --d 1.5`
+
+### Performance Testing
+
+#### Recommended
+ * [Install Virtual Machine](https://www.virtualbox.org/wiki/Downloads)
+ * [Install Ubuntu OS on VM](https://linuxconfig.org/how-to-install-ubuntu-20-04-on-virtualbox)
+ * [Install Mininet](http://mininet.org/download/)
+ * Install xterm on OS: Ubuntu `sudo apt-get install -y xterm`
+
+#### Mininet
+ * Open terminal in virtual machine operating system
+ * Start mininet service `sudo mn --topo single, 3` switch = single , hosts = 3
+ * Start multiple terminals `xterm h1 h2 h3`
+ * Start one of each CLIs listed below within each of the terminal windows
+
+#### Automated Testing
+ * Open terminal in virtual machine operating system
+ * Run `sudo python single_switch.py <number of subscribers>`
+
+### File Descriptions
+
 * *FOLDER* - cs6381-assignment1
   * *FOLDER* - latency
     * automated testing result files (sub-#_broker-#.log, test.png)
@@ -73,222 +204,37 @@ In the direct broker scenario, the address of the publisher is received by the s
   * psserver.py - CLI to start direct or routing broker
   * single_switch.py - automated latency testing
 
-<hr>
-
-### PROJECT DEMONSTRATION
-#### RECOMMENDED
- * [Install Virtual Machine](https://www.virtualbox.org/wiki/Downloads)
- * [Install Ubuntu OS on VM](https://linuxconfig.org/how-to-install-ubuntu-20-04-on-virtualbox)
-
-#### REQUIRED PACKAGES
- * [Install 0mq](https://zeromq.org/download/)
- * [Install Faker](https://faker.readthedocs.io/en/master/#basic-usage)
- * [Install Mininet](http://mininet.org/download/)
- * Install xterm on OS: Ubuntu `sudo apt-get install -y xterm`
-
-#### MININET
- * Open terminal in virtual machine operating system
- * Start mininet service `sudo mn --topo single, 3` switch = single , hosts = 3
- * Start multiple terminals `xterm h1 h2 h3`
- * Start one of each CLIs listed below within each of the terminal windows
-
-#### AUTOMATED TESTING
- * Open terminal in virtual machine operating system
- * Run `sudo python3 single_switch.py #` # Represents the number of subscribers in test
-
-<hr>
-
-### COMMAND LINE INTERFACE USAGE
-- [ ] TODO Review base on pending merges 06/07/2021
-* psserver.py - start broker
-  * -h : Help - to see argument options
-  * Example: `python3 psserver.py --t r --a 127.0.0.1 --p 5555`
-  * --t : d = Direct Broker r = Routing Broker
-  * --a : IP Address 
-  * --p : Port number
-* ps_publisher - start publisher
-  * -h : Help - to see argument options
-  * Example: `python3 ps_publisher.py tcp://127.0.0.1:5556 tcp://127.0.0.1:5555 --t hello --r 100 --d 1.5`
-  * address - publisher's own address formatted as \<transport>://<ip_address>:\<port>
-  * broker address - brokers known address formatted as \<transport>://<ip_address>:\<port>
-  * --t : Topics\<string> 0-* topics
-  * --r : Random\<int> - number of random messages to send 
-  * --d : Delay\<float> - amount of time in seconds before sending messages
-* ps_subscriber - start subscriber
-  * -h : Help - to see argument options
-  * Example: `python3 ps_subscriber.py tcp://127.0.0.1:5557 tcp://127.0.0.1:5555 --t hello`
-  * address - subscriber's own address formatted as \<transport>://<ip_address>:\<port>
-  * broker address - brokers known address formatted as \<transport>://<ip_address>:\<port>
-  * --t : Topics\<string> 0-* topics
-
-<hr>
-
-### APPLICATION PROGRAMMING INTERFACE(API)
-
-#### REQUIRED PACKAGES
- * [Install 0mq](https://zeromq.org/download/)
-
-
-#### PUBLISHER
-
-`Publisher(address = <address of this publisher>, registration_address = <address of the broker>)`
-
-* Contructs an instance of a publisher with its own address and the brokers address.
-
-`register(topic = <string>)`
-
-* Registers the publisher with the broker for the given topic.
-  
-`publish(topic = <string>, message = <string>, message_type = <default = MessageType.STRING>)
-MessageType = [STRING, PYOBJ, JSON]`
-
-* Publishes a message for a given topic in one of three message formats.
-
-#### SUBSCRIBER
-
-`Subscriber(address = <address of this subscriber>, registration_address = <address of the broker>)`
-
-* Contructs an instance of a subscriber with its own address and the brokers address.
-
-`register(topic = <string>)`
-
-* Registers the subscriber with the broker for the given topic.
-  
-`unregister(topic = <string>)`
-
-* Unregisters the subscriber with the broker for the given topic. Subscriber will stop receiving messages.
-
-`notify(topic = <string>, message = <string>)`
-
-* Passes the received message to the user's application
-
-`register_callback(callback = Function or method to be called when a message is received)`
-
-* Application can register a callback that will receive the arguments from notify()
-
-`wait_for_msg()`
-
-* Once subscriber has registered application wait_for_message() must be running on the client.
-* Upon receipt of a message the notify() is called which in turn sends the message details to the registered callback. 
-
-`wait_for_registration()`
-
-* Must be run in a seperate thread so that it will not block the subscriber from receiving messages.
-* Allows subscriber to receive new publisher registrations.
-
-<hr>
-
-### TESTING
-
-#### UNIT TESTING
-From main project directory
-
-`pytest`
-* To run application unit tests
-
-`pytest --cov=pubsub -cov-report html`
-* To run tests and get coverage report
-
-<hr>
-
 #### PERFORMANCE TESTING: LATENCY ANALYSIS
-- [ ] TODO
 
-<table border=2 align="center">
-  <tr>
-    <td align="center" colspan="11">Publish 1000 messages (time)</td>
-  </tr>
-  <tr>
-    <td></td><td align="center" colspan="5">ROUTING BROKER</td><td align="center" colspan="5">DIRECT BROKER</td>
-  </tr>
-  <tr align="center">
-    <th>Subscribers</th><th>Q1</th><th>MED</th><th>Q3</th><th>Q4</th><th>MAX</th><th>Q1</th><th>MED</th><th>Q3</th><th>Q4</th><th>MAX</th>
-  </tr>
-  <tr align="center">
-    <td align="right">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">8</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">16</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">32</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">64</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">128</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-  <tr align="center">
-    <td align="right">256</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-   <tr align="center">
-    <td align="right">512</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-  </tr>
-</table>
+**Statistics**
+```
+             001_d        001_r        002_d        002_r        004_d        004_r        008_d        008_r         016_d         016_r
+count  1000.000000  1000.000000  2000.000000  2000.000000  4000.000000  4000.000000  8000.000000  8000.000000  16000.000000  16000.000000
+mean      0.084348     0.037717     0.087789     0.097000     0.142497     0.146839     0.283256     0.334443      0.606059      0.611125
+std       0.056347     0.037808     0.069261     0.074146     0.127648     0.117144     0.263280     0.291161      0.569671      0.561630
+min       0.000105     0.000842     0.000067     0.000203     0.000086     0.000742     0.000142     0.000380      0.000130      0.001209
+25%       0.003239     0.005228     0.000236     0.000739     0.000292     0.015125     0.019072     0.038494      0.012043      0.028659
+50%       0.118551     0.029139     0.086006     0.106523     0.151019     0.154681     0.247727     0.283521      0.504681      0.497885
+75%       0.125188     0.058104     0.160943     0.168650     0.241981     0.253651     0.530503     0.599421      1.118283      1.065992
+max       0.131203     0.164185     0.180269     0.209540     0.369497     0.346041     0.776108     0.918261      1.724125      1.800703
+```
 
-<hr>
+**Mode**
 
+```
+       001_d     001_r     002_d     002_r     004_d     004_r     008_d     008_r     016_d     016_r
+0   0.000114  0.001315  0.000114  0.000273  0.000144  0.004843  0.005141  0.038494  0.000235  0.019645
+1   0.000119  0.001617       NaN  0.000304       NaN  0.006383  0.167435       NaN  0.000283  0.020640
+2   0.000140  0.094738       NaN  0.000323       NaN  0.006420       NaN       NaN  0.000308  0.021603
+3   0.000149       NaN       NaN  0.000328       NaN  0.006520       NaN       NaN  0.000979       NaN
+4   0.000183       NaN       NaN  0.000330       NaN  0.006744       NaN       NaN  0.004291       NaN
+5   0.000193       NaN       NaN  0.000370       NaN  0.007340       NaN       NaN  0.005635       NaN
+6   0.000320       NaN       NaN  0.000424       NaN  0.007867       NaN       NaN  0.010745       NaN
+7   0.003371       NaN       NaN       NaN       NaN  0.008100       NaN       NaN       NaN       NaN
+8   0.124150       NaN       NaN       NaN       NaN  0.008106       NaN       NaN       NaN       NaN
+9   0.124246       NaN       NaN       NaN       NaN  0.008520       NaN       NaN       NaN       NaN
+10  0.130786       NaN       NaN       NaN       NaN  0.008808       NaN       NaN       NaN       NaN
+```
 
-#### Plotted graphs
-- [ ] TODO Drag 'n Drop \*.png files HERE
+**Plotted Graphs**
 
-[Routing Broker Latency]
-
-[Direct Broker Latency]
-
-
-### REQUIREMENTS
-
-- [ ] TODO REMOVE AS ACCOMPLISHED
-
-Mandatory: 
-
-- [ ] Use a SingleSwitchTopo with one host per participant in your system (e.g. one host per subscriber, one host per publisher, and one host for the broker). 
-
-- [ ] Start a broker system in either direct or proxy mode
-* - [ ] Create a single topic and publish at least 1,000 messages on that topic. Record the time each message arrives on a subscriber
-* - [ ] At end of test run, take every latency measurement you have seen so far and calculate the first quartile, the median and the third quartile. This tuple of (mode, count(subs), Q1, median, Q3) is the result of a single test run.
-- [ ] Repeat this entire process with 2,4,8,16 subscribers for both direct and proxy mode. You should have 8 tuples (a.k.a 8 rows) when you are done
-- [ ] Generate a line graph (INCLUDE AXIS LABELS!!) showing at least the median latency versus the number of subscribers. If your graphing tool supports it, generate a boxplot graph so we can see latency vs subscribers, where latency is drawn as a boxplot instead of a single number. If you need to generate one graph for direct mode and one graph for proxy mode that is OK, but it is preferred to put both lines (or both sets of boxplots) onto one graph next to each other
-
-- [ ] Document what your tests show.
-* - [ ] Does the typical time to deliver a message increase as the number of subscribers increases?
-* - [ ] How significant is this effect? Does your system become less predictable as the number of subscribers increases (e.g. as count(subs) goes up, do you see the Q1 to Q3 recordings get farther apart?)? 
-* - [ ] Do you expect higher latency in subscriber mode vs publisher mode. Peek inside your exact latency measurements - do you see that the first few (or first single) latency measurements are always quite a bit higher than then next ones?
-* - [ ] Can you explain this?
-
-
-
-Bonus: 
-
-- [ ] Use boxplots in your graphs
-
-- [ ] Come up with a way to scale the above system to much more significant numbers, and expand the test to 32,64,128,256,512
-
-- [ ] Add in a 'warm up' that sends a few hundred messages before it starts recording latency. Be sure you don't pause the system after the warmup is done, you need to keep it running but hot switch into a recording mode
-
-- [ ] In addition to quartile 4, record the maximum value and add that to your boxplot
-
-- [ ] Recreate the graphs
-
-- [ ] Expand your explanatory documentation. See if you observe completely different behavior "to the right of" 16 subscribers, and explain what this means for "reading system results". 
-* - [ ] Did you keep the same basic conclusions about system scalability, or did you learn something new?
-* - [ ] Does variabilty in message deliver latency scale in an acceptable manner, or does performance degrade so rapidly as the number of subscribers increases that the system is useless at larger numbers?
-* - [ ] Consider your system resources - was network or cpu or memory the most scarce resource during your test?
-* - [ ] Were you able to run 512 without taxing your local system, or are the results at 512 likely invalid because your host computer was out of resources?
-* - [ ] What new information did you learn by looking at the maximum values of the latencies?
-* - [ ] For either mode of your system, could you confidently declare an upper limit on message delivery?
-* - [ ] If yes, explain that. If no, what would you need to do to guarantee an upper time limit on "event delivered or thrown away"
-
-- [ ] Rerun the test with 4 subscribers, but edit your mininet links manually. Use the `delay='Xms'` option on addLink to make a single link very slow. Play with this scenario. 
-* - [ ] Does the single slow subscriber cause the non-slow subsribers to starve? Is the publisher slowed down? 
