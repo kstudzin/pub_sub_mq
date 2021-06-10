@@ -65,6 +65,9 @@ A system overviews is provided in the following diagrams. In these diagrams, the
 
 This sequence diagram provides another view. Note that the sections separated by the green lines may be running at the same time:
 
+<img width="849" alt="Screen Shot 2021-06-10 at 5 46 51 AM" src="https://user-images.githubusercontent.com/10711838/121512191-75f32800-c9b7-11eb-97fd-50bfb89965d1.png">
+
+
 Because these processes run at the same time, we need to think about how they interleave. One edge case that is not covered in the code is if a publisher registers for a topic after the broker has sent the addresses but before the publisher registration receiving connection on the subscriber has connected. Note this may only happen the first time the subscriber registers because the connection is already made subsequently and only if the first call to register happens before the connection, which is initiated in the constructor, is complete. (Currently we sleep before receiving the address the first time into register, but this is insufficient protection because the addresses have already been sent.) 
 
 One approach to solve this would be to add an additional request reply inside the subscriber registration. This would require changes to both `DirectBroker.process_sub_registration` and `Subscriber.register`. In the broker, the broker type and the addresses would be separated into two messages. After sending the broker type, the broker would wait to receive another message from the subscriber acknowledging that the publisher registration connection is connected. Once the broker received that message it would send the addresses. Because the broker handles publisher and subscriber registrations sequentially, this would ensure that when the broker exited the subscriber registration and was ready to process publisher registrations, the subscriber would be ready to process the messages it received.
