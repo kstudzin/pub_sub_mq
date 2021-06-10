@@ -65,17 +65,6 @@ class Subscriber:
         self.message_sub_bound = False
         self.publisher_sub_ready = False
 
-        # move this bind
-        # Because either this socket or the publisher registration notification
-        # socket will be bound to this subscriber address, we cannot bind either
-        # until we know which broker we are using. Luckily, the reply from the
-        # registration request tells us which broker type is being used
-
-        # add address bound flag
-        # An address can only be bound once. Because we need to bind the address
-        # in a place that will be called more than once, we can add a flag here
-        # that gets switched once the address has been bound.
-
         self.registration = self.ctx.socket(zmq.REQ)
         self.registration.connect(registration_address)
 
