@@ -1,0 +1,36 @@
+Date		Name	Activity						Status
+5/20/2021	KB	Kick-off Meeting	
+5/21/2021	KB	Push Sample Code to repo verify both can run	
+5/22/2021	KB	Review KS stubs	
+5/23/2021	KB	Start argument parse for CLIs	
+5/24/2021	KB	Standup	
+5/24/2021	KB	CLI prohibits subscriber from subscribing once messages are incoming, proposed build sample GUI to allow both activities in one window	
+5/25/2021	KB	Build tkinter GUI for demo				OBE by automated script
+5/26/2021	KB	Standup	
+5/26/2021	KB	Build tkinter GUI for demo				OBE by automated script
+5/28/2021	KB	Standup	
+5/28/2021	KB	Update CLI for Publisher, Broker, Subscriber	
+5/29/2021	KB	Update CLI for Publisher, Broker, Subscriber	
+5/30/2021	KB	Start working on VM	
+5/30/2021	KB	Start Direct Broker Implementation			OBE by design pattern change
+5/31/2021	KB	Standup	
+5/31/2021	KB	Direct Broker Implementation continued			OBE by design pattern change
+6/1/2021	KB	Direct Broker Implementation integrated pattern	
+6/2/2021	KB	Standup	
+6/2/2021	KB	Direct Broker Implementation integrated pattern	
+6/3/2021	KB	Direct Broker Unit tests	
+6/3/2021	KB	Build various message samples from csv for testing data	OBE by test parameters
+6/4/2021	KB	Standup	
+6/4/2021	KB	Build various message samples from csv for testing data	OBE by test parameters
+6/4/2021	KB	Start Read me documentation	
+6/5/2021	KB	Custom logger to split application messages from latency messages to seperate files	
+6/5/2021	KB	Read me documentation continued	
+6/5/2021	KB	Touch up unit tests	
+6/6/2021	KB	Read me documentation continued	
+6/7/2021	KB	Standup	
+6/7/2021	KB	Read me documentation continued	
+6/8/2021	KB	Standup	
+6/8/2021	KB	VM install required packages, debugging run environment	
+6/8/2021	KB	Read me documentation continued	
+6/9/2021	KB	Proof KS readme addtions	
+6/10/2021	KB	Standup-Finalize submission details	
