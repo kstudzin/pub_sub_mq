@@ -47,6 +47,8 @@ In each case, the subscriber will also set the topics to receive messages for on
 
 When using a direct publisher, the subscriber also maintains a third connection that subscribes to updates from the broker on new publishers that are registering. When used, this connection is bound to the subscriber's address. This connection waits for messages in the `wait_for_registration` method which must be run in a loop in a thread.
 
+The reason for the added complexity in the subscriber with the direct broker is because it needs to connect directly to the publisher address, and a publisher may register before or after a subscriber. To walk through how the subscriber gets the publisher address, see discussion [here](https://github.com/kstudzin/cs6381-assignment1/commit/0fa69fc94cb0ebd686dc6f8e9c4fb1c281985d49#r51546213).
+
 ### Diagrams
 
 A system overviews is provided in the following diagrams. In these diagrams, the connections (ZMQ sockets) are represented by a circle with the following information:
