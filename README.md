@@ -49,13 +49,25 @@ When using a direct publisher, the subscriber also maintains a third connection 
 
 ### Diagrams
 
-[Routing Broker Diagram](https://user-images.githubusercontent.com/76195473/121063916-ea9a4c80-c794-11eb-9a7f-162a83d3ed62.png)
+A system overviews is provided in the following diagrams. In these diagrams, the connections (ZMQ sockets) are represented by a circle with the following information:
+
+- Type (PUB or SUB)
+- Method of attaching an address (BIND or CONNECT)
+- Entity owning the attached address 
+
+[Routing Configuration](https://user-images.githubusercontent.com/76195473/121063916-ea9a4c80-c794-11eb-9a7f-162a83d3ed62.png)
 
   * All message passing goes through routing broker.
 
-[Direct Broker Diagram](https://user-images.githubusercontent.com/76195473/121063991-07cf1b00-c795-11eb-910e-6cae570af6cb.png)
+[Direct Configuration](https://user-images.githubusercontent.com/76195473/121063991-07cf1b00-c795-11eb-910e-6cae570af6cb.png)
 
   * Both publishers and subscribers register with the broker but messages are sent directly.
+
+This sequence diagram provides another view. Note that the sections separated by the green lines may be running at the same time:
+
+Because these processes run at the same time, we need to think about how they interleave. One edge case that is not covered in the code is if a publisher registers for a topic after the broker has sent the addresses but before the publisher registration receiving connection on the subscriber has connected. Note this may only happen the first time the subscriber registers because the connection is already made subsequently and only if the first call to register happens before the connection, which is initiated in the constructor, is complete. (Currently we sleep before receiving the address the first time into register, but this is insufficient protection because the addresses have already been sent.) 
+
+One approach to solve this would be to add an additional request reply inside the subscriber registration. This would require changes to both `DirectBroker.process_sub_registration` and `Subscriber.register`. In the broker, the broker type and the addresses would be separated into two messages. After sending the broker type, the broker would wait to receive another message from the subscriber acknowledging that the publisher registration connection is connected. Once the broker received that message it would send the addresses. Because the broker handles publisher and subscriber registrations sequentially, this would ensure that when the broker exited the subscriber registration and was ready to process publisher registrations, the subscriber would be ready to process the messages it received.
 
 ## How (to use)
 
@@ -198,21 +210,27 @@ Example: `python psserver.py --type r --address 127.0.0.1 --port 5555`
 
 To see full help menu: `python ps_subscriber.py -h`
 
-Example: `python ps_subscriber.py tcp://127.0.0.1:5557 tcp://127.0.0.1:5555 --t hello`
+Example: `python ps_subscriber.py tcp://127.0.0.1:5557 tcp://127.0.0.1:5555 --topics hello`
 
 **Start publisher**
 
 To see full help menu: `python ps_publisher.py -h`
 
-Example: `python ps_publisher.py tcp://127.0.0.1:5556 tcp://127.0.0.1:5555 --t hello --r 100 --d 1.5`
+Example: `python ps_publisher.py tcp://127.0.0.1:5556 tcp://127.0.0.1:5555 --topics hello -r 1000`
 
 ### Performance Testing
 
 #### Recommended
+_Not that recommendations are required for testing with the approaches below. However, they are not required if testing on a real network._
  * [Install Virtual Machine](https://www.virtualbox.org/wiki/Downloads)
  * [Install Ubuntu OS on VM](https://linuxconfig.org/how-to-install-ubuntu-20-04-on-virtualbox)
  * [Install Mininet](http://mininet.org/download/)
  * Install xterm on OS: Ubuntu `sudo apt-get install -y xterm`
+ * Install openvswitch-testcontroller: 
+```
+sudo apt-get install openvswitch-testcontroller
+sudo ln -s /usr/bin/ovs-testcontroller /usr/bin/ovs-controller
+```
 
 #### Mininet
  * Open terminal in virtual machine operating system
@@ -224,11 +242,18 @@ Example: `python ps_publisher.py tcp://127.0.0.1:5556 tcp://127.0.0.1:5555 --t h
  * Open terminal in virtual machine operating system
  * Run `sudo python single_switch.py <number of subscribers>`
 
+#### Troubleshooting
+
+ * Automated tests run consistently up to 16 subscribers in `all` mode and up to 128 in `single` mode. They are inconsistent at 256 subscribers. It may be that running the broker configurations separately would help. This needs to be tested.
+ * If mininet does not exit correctly, run `sudo mn -c`
+ * If mininet does not start with a message about the controller running, run `ps -aux | grep controller` to find the controller pid and kill it. The controller runs as root so it must be killed with sudo.
+ * Python packages described at lower levels of this documentation need to be installed with sudo.
+
 ### File Descriptions
 
 * *FOLDER* - cs6381-assignment1
   * *FOLDER* - latency
-    * automated testing result files (sub-#_broker-#.log, test.png)
+    * automated testing result files (sub-[0-9]+_broker-[rd].log, test.png)
   * *FOLDER* - pubsub
     * \_\_init\_\_.py - Package initializer with dual log file creation 1 for application information and 1 for performance analysis
     * broker.py - Three classes for API an AbstractBroker, RoutingBroker(AbstractBroker), and DirectBroker(AbstractBroker)
@@ -286,21 +311,17 @@ Testing 1, 2, 4, 8, 16 subscribers with each subscriber receiving 1000 messages
 
 ![boxplot](https://user-images.githubusercontent.com/10711838/121433686-54a82280-c94a-11eb-918c-70052e6997c2.png)
 
-Testing 1, 2, 4, 8, 16, 32, 64 subscribers with each subscriber receiving 1000 messages
-
-<img width="592" alt="boxplot4" src="https://user-images.githubusercontent.com/10711838/121435404-d0a36a00-c94c-11eb-979a-970dd6bf33d8.png">
-
 **Analysis**
+
+We were able to run tests with 256 subscribers however our analysis is incomplete. The next step is to investigate why all the data wasn't imported into our analysis script. We found, for example, that while our log for the test  32 subscribers had 32000 data points as expected, the output of our analysis script only had 16000 of the data points included. We only consider up to 16 subscribers here.
 
 _**Does the typical time to deliver a message increase as the number of subscribers increases?**_ 
 
 Yes, the typical time to deliver a message increases as the number of subscribers increases.
 
-We were able to run tests with 32 and 64 subscribers which show the latency numbers decrease significantly. It is likely that ZMQ is doing optimization, but we were not able to investigate the mechanism.
-
 _**How significant is this effect?**_
 
- This is consistent across tests. The typical time to deliver a message appears to increase approximately linearly as the number of subscribers increases. (Note that the x-axis is a log scale). Latency appears to increase at approximately the same rate for both brokers with the direct broker being shifted down slightly.
+ This is consistent across tests. The typical time to deliver a message appears to increase approximately linearly as the number of subscribers increases. (Note that the x-axis is a log scale). Latency appears to increase at approximately the same rate for both broker configurations with the direct broker being shifted down slightly.
 
 _**Does your system become less predictable as the number of subscribers increases (e.g. as count(subs) goes up, do you see the Q1 to Q3 recordings get farther apart?)?**_
 
