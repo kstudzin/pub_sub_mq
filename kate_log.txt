@@ -1,0 +1,12 @@
+Note: This log only includes work NOT included in Git histories
+
+# One-time tasks
+
+5/31/2021   KS  Create routing and direct broker diagrams
+
+# Ongoing Tasks
+
+KS  Architected approach to direct and routing brokers (ex: squence diagram in README)
+KS  Project management
+KS  Running team tag-ups
+KS  Code reviews
